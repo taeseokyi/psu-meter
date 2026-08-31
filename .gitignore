@@ -1,0 +1,16 @@
+# Office 임시/잠금 파일
+~$*
+*.tmp
+
+# Python
+__pycache__/
+*.py[cod]
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# 도해 생성 중간 산출물
+src/*.png
+src/crop.png
