@@ -41,6 +41,7 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 | **[`HANDOFF.md`](HANDOFF.md)** | 왜 이렇게 설계했는지, 무엇이 미해결인지, 다음에 뭘 할지 |
 | **[`BOM.md`](BOM.md)** | 부품 목록과 조달처. 확인된 링크 / 검색어 / 주의 3단계로 구분 |
 | **[`PRISM_SOURCING.md`](PRISM_SOURCING.md)** | 프리즘 후보 비교와 선정 근거. **주문 전에 이것부터** |
+| **[`ILLUMINATION.md`](ILLUMINATION.md)** | 조명계 설계. 슬릿·입사창의 역할, 두 배치와 평면도 요구. **미결정 항목 있음** |
 
 ### 도면 (`figures/`)
 
@@ -62,6 +63,7 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 |---|---|
 | `design_calc.py` | 모든 설계 수치의 계산 근거. 외부 라이브러리 불필요 |
 | `src/segment_optics.py` | 활꼴 광선추적 · 경계 폭 예산(회절·슬릿·팔 길이) · 렌즈 배치 비교 · 파장 분산 · AR 코팅 TMM |
+| `src/illum_sim.py` | 조명 배치 B 광선추적. 조명팔·패치·경계 이동·표면 평면도 민감도 |
 
 ---
 
@@ -160,5 +162,5 @@ npm run build   # 해수수조_광학식_염도측정_설계.pptx 를 저장소 
 그림을 먼저 재생성해야 합니다. 나머지 4장(head · printed · mosfet · breadboard)은
 pptx에 들어가지 않고 저장소 문서에서만 참조됩니다.
 
-`python design_calc.py` 와 `python src/segment_optics.py` 는 그림 없이 수치만 출력하며
-외부 라이브러리가 필요 없습니다.
+`python design_calc.py` · `python src/segment_optics.py` · `python src/illum_sim.py` 는
+그림 없이 수치만 출력하며 외부 라이브러리가 필요 없습니다.

@@ -134,6 +134,57 @@ TCD1304(고해상도 리니어 CCD)도 기각 — 1~4 MHz ADC가 필요해 아�
 UVC LED는 소모품이 없고 수조 유입 위험이 원천적으로 없습니다. 단 **UVC는 실리콘·PMMA·접착제를 열화**시키므로 근처는 PTFE나 유리를 쓰고, 프리즘 접착에 UV 경화 접착제는 금지입니다.
 탄산칼슘 스케일은 UVC로 안 되므로 월 1회 묽은 구연산 순환을 따로 넣습니다.
 
+### 상용 모듈을 쓰지 않는 이유 (2026-09-01 3차 조사)
+
+"이미 조립된 모듈이 있지 않나"는 당연한 질문이고, **있습니다.** 그런데 둘 다 안 맞습니다.
+
+**Vaisala K-Patents PR-33-AC** — 이름 그대로 "Sanitary **OEM** Refractometer" 이고
+구조가 이 설계와 거의 같습니다. 프리즘 · **LED 590 nm** · 온도센서 · **3648 픽셀 CCD** 가
+하나의 CORE-optics 덩어리이고, 단면도를 보면 프리즘 끝에서 부채꼴이 퍼져 리니어 CCD 에
+바로 닿습니다 — 검출팔에 렌즈가 없는 구조입니다 ([`ILLUMINATION.md`](ILLUMINATION.md) §5).
+
+| | nD | PSU 환산 |
+|---|---|---|
+| PR-33-AC 정확도 | ±0.0002 | **±1.11** |
+| PR-33-AC 재현성 | ±0.0001 | **±0.55** |
+| Pyxis RT-50 | ±0.2 % Brix | **±1.65** |
+| **이 프로젝트 목표** | ±2.2×10⁻⁵ | **±0.124** |
+
+**(1) 정밀도가 4.5~9배 부족합니다.** 2점 자가보정을 붙여 절대 정확도를 무시해도
+재현성 0.55 PSU 가 남아 목표에 못 미칩니다. → **모듈 구매로는 목표를 못 맞춥니다.**
+
+**(2) 전부 상시 침지형입니다.** 설치 사진을 보면 스테인리스 배관에 클램프로 박혀 있고,
+RT-50 은 유로 147 mm · Ø25.4 삽입형입니다. 이건 위 "측정 위치" 항목에서 생물막 때문에
+명시적으로 기각한 아키텍처입니다. 산업 공정은 유속이 크고 CIP 세정을 하니 성립하지만
+수조는 아닙니다.
+
+**(3) 수조 시장에는 자동 광학식이 아예 없습니다.** 자동 측정은 전부 전기전도도
+(Neptune Apex PM2 등)이고, 광학식은 전부 손으로 보는 휴대용입니다.
+**"필요할 때만 재는 광학식 전자동"은 시판 제품이 없습니다.**
+
+#### 왜 자작이 상용 모듈보다 분해능이 좋은가 — 역설이 아니다
+
+PR-33-AC 는 Ø110 mm 하우징 안에 다 들어가야 해서 **검출팔이 수십 mm** 입니다.
+그래서 3648 픽셀(8 µm 피치)이 필요합니다. 이 프로젝트는 **검출팔 250 mm** 를 쓸 수 있어
+128 픽셀(63.5 µm)로도 1 px/PSU 가 나옵니다.
+
+→ **상용 프로브가 지불할 수 없는 것(부피)을 지불해 분해능을 사는 구조**입니다.
+수조 옆 상자는 500 × 150 mm 여도 괜찮으니까요. 설계가 순진한 게 아니라, 산업용이 쓸 수
+없는 자유도를 쓰고 있습니다.
+
+#### 빌려온 것
+
+- **Cargille 표준 굴절액** — PR-33-AC 의 교정 물질. 어차피 재는 것이 굴절률이므로
+  표준해수일 필요가 없습니다. 오차예산 1위 항목(표준액 0.1 PSU)을 개선할 여지 → BOM §4
+- **공기 중 교정** — RT-50 매뉴얼 §6.1 "굴절률 교정은 필요 없다. 다만 공기 중 교정으로
+  광학 부품의 정렬 이탈과 노화를 보정할 수 있다". 이 설계의 공기 풀스케일 기준점과 동일 ✓
+- **modified PTFE 프리즘 개스킷** (PR-33-AC) — 재질 선택 확증
+- **590 nm** — 파장 선택의 독립적 확증
+- **짧은 팔 + 촘촘한 화소** — 하우징이 부담되면 갈 수 있는 대안. 단 TCD1304 의 MHz
+  샘플링 문제는 그대로 남습니다 (위 "검출기" 항목)
+
+**가격은 여전히 미확인입니다.** 둘 다 견적 문의형이고 공개 가격이 없습니다.
+
 ### 3D 프린팅 — 광학면에서 좌우 클램셸 2분할
 
 경사진 보어는 FDM으로 못 뚫습니다. **광선이 지나는 평면에서 두 쪽으로 가르면** 각 쪽에 반원 홈이 위를 향한 채 남아, 서포트 없이 매끈한 채널이 나옵니다.
@@ -253,7 +304,7 @@ d(θc)/dλ = [ dn_s/dλ − sin(θc)·dn_p/dλ ] / (n_p·cos θc)
 | ~~**BK7 반원통 렌즈 실제 구매 가능성**~~ | **2026-09-01 해결.** 국내 아크릴 교구로 확정. [`PRISM_SOURCING.md`](PRISM_SOURCING.md) 참조 |
 | **TSL1401 모듈의 렌즈 탈거 가능 여부** | 상품 사진으로 나사식인지 접착인지 확인 필요. 렌즈가 붙어 있으면 이 설계는 동작하지 않음 |
 | ~~**590 nm LED의 실제 반치폭(FWHM)**~~ | **2026-09-01 2차 해결.** 프리즘 분산 상쇄로 40 nm 라도 0.52 PSU. 발주 조건 아님 (§4) |
-| **일체형 모듈 대안** | 산업용 인라인 굴절계(Pyxis RT-50, Anton Paar L-Rix, MISCO IRIS, ATAGO)는 존재하나 가격 미확인. 포켓 굴절계(ATAGO PAL-06S)는 ±2 PSU로 목표에 한참 못 미침 |
+| **일체형 모듈의 가격** | 제원은 2026-09-01 확인 완료 (§3 "상용 모듈을 쓰지 않는 이유") — Vaisala PR-33-AC 재현성 ±0.55 PSU, Pyxis RT-50 ±1.65 PSU 로 **둘 다 목표 미달이고 상시 침지형**. 다만 **가격은 견적 문의형이라 여전히 미확인** |
 
 ### 전혀 검증 안 된 것
 
@@ -407,6 +458,14 @@ px/PSU 배율은 팔 250 mm 와 같습니다(f 가 팔을 대신함). PSU 환산
 
 ## 8. 열려 있는 설계 질문
 
+**조명 배치가 미결정입니다 ★ 2026-09-01 3차 추가.** 슬릿을 렌즈로 측정면에 집광하는지
+(배치 A) 렌즈 없이 두는지(배치 B)가 정해지지 않았고, 이것이 **표면 평면도 요구를
+정합니다** — 배치 B 는 0.5~2 mm 주기에서 λ/20 급이 필요하고 배치 A 는 요구가 없습니다.
+`segment_optics.py` 는 이미 배치 A 를 가정하고 있으나 BOM 에 콘덴서 렌즈가 없었습니다.
+전체 내용은 [`ILLUMINATION.md`](ILLUMINATION.md). **1순위 검증에서 조명 패치 폭을
+실측하면 결판납니다.**
+
+
 **검출팔 250 mm의 하우징 크기.** 상자가 약 500 × 150 mm가 됩니다. 부담되면 팔 중간에 평면거울을 넣어 광로를 접으면 절반이 됩니다. 거울 각도 오차는 2점 보정이 흡수하므로 정밀한 거울일 필요는 없습니다. 아직 도면화하지 않았습니다.
 
 **온도 균일화 방식이 두 번 바뀌었습니다.** 처음엔 섬프 침수 → 이후 단열 + 알루미늄 열용량 → 3D 프린팅 대응으로 알루미늄 평판 + 단열 + 코드 보정. 최종안은 `fig_printed.png` 기준이지만 **실측으로 ΔT가 얼마나 남는지 확인이 필요합니다.**
@@ -432,4 +491,12 @@ px/PSU 배율은 팔 250 mm 와 같습니다(f 가 팔을 대신함). PSU 환산
 - [The IRF520 FET switching module — arduinodiy](https://arduinodiy.wordpress.com/2020/11/22/the-irf520-fet-switching-module/) · [IRF520 not a good choice for Arduino — Arduino Forum](https://forum.arduino.cc/t/irf520-mosfet-not-a-good-choice-for-arduino-use/702391)
 - [HC-05·HC-06 ZS-040 보드 — Martyn Currey](https://www.martyncurrey.com/hc-05-and-hc-06-zs-040-bluetooth-modules-first-look/) · [ProtoSupplies](https://protosupplies.com/product/hc-05-zs-040-bluetooth-module/)
 - [ATAGO PAL-06S 사양 (±2‰)](https://novatech-usa.com/Products/Seawater-Salinity/4406-PAL-06S_2.html) — 시판 포켓 굴절계 정확도 비교 기준
+- **일체형 모듈 제원의 근거** (§3 "상용 모듈을 쓰지 않는 이유"):
+  [Vaisala K-PATENTS Sanitary OEM Refractometer PR-33-AC 데이터시트](https://www.vaisala.com/sites/default/files/documents/PR-33-AC-Sanitary-OEM-Refractometer-B211883EN.pdf)
+  (nD 정확도 ±0.0002 · 재현성 ±0.0001 · LED 590 nm · 3648 px CCD · Cargille 표준액 교정) ·
+  [Pyxis Prism RT-50 User Manual](https://www.pyxis-lab.com/wp-content/uploads/2023/02/RT-50-User-Manual-v1.03.pdf)
+  (±0.2 % Brix, 공기 중 교정, RS-485 로 원시 굴절률 출력)
+- [US 7,821,622 — Optical refractometer for measuring seawater salinity and corresponding salinity sensor](https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7821622) — 해수 염도 전용 광학 굴절계 특허. 선행기술
+- [Best Salinity Meters — Bulk Reef Supply](https://www.bulkreefsupply.com/content/post/best-salinity-meters) — 수조 시장의 자동 측정은 전부 전기전도도라는 근거
+- [Inline process refractometer — Wikipedia](https://en.wikipedia.org/wiki/Inline_process_refractometer)
 - 산업용 인라인 굴절계: [Pyxis RT-50](https://www.pyxis-lab.com/product/rt-50-prism-inline-refractometer/) · [Anton Paar L-Rix](https://www.anton-paar.com/us-en/products/details/l-rix/) · [MISCO IRIS](https://www.misco.com/product/iris-inline-process-refractometer/) · [ATAGO](https://www.atago.net/en/products-prm-top.php)
