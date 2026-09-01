@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="psu-meter 설계 도면 9장 — 임계각 원리, 2점 보정 검량선, 측정 헤드, 플로우셀, 유체 회로, 배선. 갱신이 필요한 도면은 표시했습니다.">
+<meta name="color-scheme" content="light dark">
+<title>설계 도면</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --amb:#E8901F; --leak:#39A8C7; --deep:#065A82;
+  --ground:#E9EEF2; --surface:#FFFFFF; --raised:#F3F7FA;
+  --ink:#111C24; --ink-2:#3C4E5B; --ink-3:#6B8092;
+  --rule:#CBD8E1; --rule-soft:#DEE7ED; --ok:#2E7D5B; --warn:#B4453C;
+  --font-body:"IBM Plex Sans KR",-apple-system,"Malgun Gothic","맑은 고딕",sans-serif;
+  --font-mono:"IBM Plex Mono","IBM Plex Sans KR",ui-monospace,monospace;
+  --step--1:.813rem; --step-0:1rem; --step-1:1.19rem; --step-2:1.45rem; --step-5:3.1rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+    --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+    --rule:#25353F; --rule-soft:#1C2A33;
+    --amb:#F2A03C; --leak:#4FBEDC; --ok:#5FBF92; --warn:#E2776B;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+  --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+  --rule:#25353F; --rule-soft:#1C2A33;
+  --amb:#F2A03C; --leak:#4FBEDC; --ok:#5FBF92; --warn:#E2776B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);
+  font-size:var(--step-0);line-height:1.72;word-break:keep-all;-webkit-font-smoothing:antialiased}
+.wrap{max-width:74rem;margin:0 auto;padding:0 1.5rem}
+.col{max-width:41rem}
+h1,h2,h3{text-wrap:balance;line-height:1.26;margin:0}
+a{color:var(--deep)}
+:root[data-theme="dark"] a,:root:not([data-theme="light"]) a{color:var(--amb)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) a{color:var(--deep)}}
+:focus-visible{outline:2px solid var(--amb);outline-offset:3px}
+.eyebrow{font-family:var(--font-mono);font-size:var(--step--1);font-weight:500;
+  letter-spacing:.08em;color:var(--ink-3)}
+header{padding:3.2rem 0 2rem;border-bottom:1px solid var(--rule-soft)}
+h1{font-size:var(--step-5);font-weight:700;letter-spacing:-.025em;margin-top:1.1rem}
+.lede{margin:1.2rem 0 0;font-size:var(--step-1);color:var(--ink-2);max-width:38rem}
+.lede b{color:var(--ink)}
+section{padding:2.6rem 0;border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+h2{font-size:var(--step-2);font-weight:600;margin-bottom:.3rem}
+h2+.sub{color:var(--ink-3);margin:0 0 1.5rem;font-size:var(--step--1)}
+p{margin:0 0 1rem}
+code{font-family:var(--font-mono);font-size:.92em;background:var(--raised);
+  padding:.1em .38em;border-radius:2px}
+
+figure{margin:0 0 2rem;background:var(--surface);border:1px solid var(--rule-soft);
+  border-radius:3px;overflow:hidden}
+figure a.shot{display:block;background:#FFFFFF;line-height:0}
+figure img{width:100%;height:auto;display:block}
+figcaption{padding:1rem 1.25rem 1.15rem;border-top:1px solid var(--rule-soft)}
+figcaption h3{font-size:var(--step-1);font-weight:600;margin-bottom:.3rem}
+figcaption h3 code{font-size:.72em;background:none;color:var(--ink-3);padding:0;font-weight:400}
+figcaption p{margin:0;font-size:var(--step--1);color:var(--ink-2);line-height:1.62}
+figcaption p+p{margin-top:.55rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(23rem,1fr));gap:2rem}
+
+.badge{font-family:var(--font-mono);font-size:.7rem;letter-spacing:.05em;
+  padding:.14rem .45rem;border-radius:2px;display:inline-block;margin-left:.45rem;
+  vertical-align:.12em;font-weight:500}
+.b-ok{background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)}
+.b-old{background:color-mix(in srgb,var(--warn) 16%,transparent);color:var(--warn)}
+.b-use{background:color-mix(in srgb,var(--amb) 18%,transparent);color:var(--amb)}
+.stale{color:var(--warn)}
+.stale b{color:var(--warn)}
+
+.warn{border:1px solid var(--warn);border-radius:3px;padding:1.1rem 1.35rem;
+  background:color-mix(in srgb,var(--warn) 6%,var(--surface));margin:1.4rem 0}
+.warn .eyebrow{color:var(--warn);display:block;margin-bottom:.4rem}
+.warn p{margin:0}.warn p+p{margin-top:.6rem}
+footer{padding:2.4rem 0 4rem;color:var(--ink-3);font-size:var(--step--1)}
+footer p{margin:0 0 .4rem}
+@media (max-width:640px){:root{--step-5:2.1rem}header{padding:2.2rem 0 1.6rem}section{padding:2rem 0}}
+</style>
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<nav class="sitenav"><div class="sitenav-in">
+  <a href="./" class="brand">psu-meter</a>
+  <a href="shadow-edge.html">원리</a>
+  <a href="illumination.html">조명계</a>
+  <a href="figures.html" aria-current="page">도면</a>
+  <a href="build.html">제작</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/taeseokyi/psu-meter" class="ext">GitHub</a>
+</div></nav>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">PSU-METER · 설계 도면</span>
+  <h1>도면 9장</h1>
+  <p class="lede">
+    모두 matplotlib 으로 그린 것이고 <code>src/diag*.py</code> · <code>src/head.py</code> 등으로
+    재생성됩니다. <b>일부는 2026-08-31 기준이라 이후 정정이 반영돼 있지 않습니다</b> —
+    해당 도면에는 <span class="badge b-old">갱신 필요</span> 를 붙이고 무엇이 달라졌는지 적었습니다.
+  </p>
+  <div class="warn">
+    <span class="eyebrow">도면을 그대로 믿지 마십시오</span>
+    <p>프리즘이 BK7 → <b>아크릴 활꼴</b>로, 두 팔 사이각이 123.9° → <b>149.3°</b>로,
+    셀 용적이 2 mL → <b>0.2 mL</b>로 바뀌었습니다. 도면과 문서가 어긋나면
+    <b>문서가 최신</b>입니다.</p>
+    <p>제작에 바로 쓸 수 있는 최신 치수는 <a href="build.html">제작 템플릿</a> 과
+    저장소의 <code>HOBBY_BUILD.md</code> 에 있습니다.</p>
+  </div>
+</header>
+
+<!-- ═══════════ 원리 ═══════════ -->
+<section>
+  <div class="col">
+    <h2>원리와 보정</h2>
+    <p class="sub">설계 문서 pptx 3·4장에 실린 그림</p>
+  </div>
+  <div class="grid2">
+    <figure>
+      <a class="shot" href="figures/fig_optics.png"><img src="figures/fig_optics.png"
+         alt="임계각 원리도. 반원통 프리즘 위에 시료가 있고 임계각으로 입사한 빛이 전반사되어 검출기로 향한다."></a>
+      <figcaption>
+        <h3>임계각 원리와 광학 배치 <span class="badge b-old">갱신 필요</span><br><code>fig_optics.png</code></h3>
+        <p>프리즘·시료 경계에서 전반사가 끊기는 각도를 읽는 구조. 그림은 <b>BK7 n=1.5168</b>
+        기준이라 임계각 61.93° 로 그려져 있습니다. 조달 확정된 아크릴(n=1.491)은 63.85° 입니다.</p>
+        <p>사이각 표기가 없어 그 부분은 무해합니다. 원리를 움직이며 보려면
+        <a href="shadow-edge.html">그림자 경계의 정체</a> 쪽이 훨씬 낫습니다.</p>
+      </figcaption>
+    </figure>
+    <figure>
+      <a class="shot" href="figures/fig_cal.png"><img src="figures/fig_cal.png"
+         alt="2점 자가보정 검량선. RO-DI 0 PSU 와 표준액 35 PSU 두 점을 직선으로 잇고 시료를 그 위에 얹는다."></a>
+      <figcaption>
+        <h3>2점 자가보정 검량선 <span class="badge b-old">갱신 필요</span><br><code>fig_cal.png</code></h3>
+        <p>매 사이클 RO-DI(0 PSU)와 표준액(35 PSU)을 재서 <b>검량선을 실측</b>합니다.
+        이 한 줄이 설계 전체를 지탱합니다 — 프리즘·팔 길이·조립 치수를 미리 알 필요가 없어집니다.</p>
+        <p>기울기가 <b>0.997 px/PSU</b>(BK7)로 그려져 있습니다. 아크릴 활꼴이면 1.18 px/PSU 입니다.</p>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ═══════════ 기구 ═══════════ -->
+<section>
+  <div class="col">
+    <h2>측정 헤드와 셀</h2>
+    <p class="sub">3D 프린팅으로 가는 경우 <code>fig_printed</code> 쪽을 보십시오</p>
+  </div>
+  <div class="grid2">
+    <figure>
+      <a class="shot" href="figures/fig_printed.png"><img src="figures/fig_printed.png"
+         alt="3D 프린팅용 측정 헤드 분해도. 광학면에서 좌우 클램셸로 나눈 두 쪽과 개스킷."></a>
+      <figcaption>
+        <h3>3D 프린팅용 헤드 분해도 <span class="badge b-use">실제로 만들 때 이쪽</span><br><code>fig_printed.png</code></h3>
+        <p><b>광선이 지나는 평면에서 좌우로 가르면</b> 각 쪽에 반원 홈이 위를 향한 채 남아
+        서포트 없이 매끈한 채널이 나옵니다. 이 트릭은 지금 설계에서도 그대로 씁니다.</p>
+        <p class="stale"><b>단, 25 mm 급 프리즘 기준입니다.</b> 조달품은 두께 6 mm 이므로
+        셀 치수를 다시 잡아야 합니다. 1순위 벤치는 밀봉이 아예 없으므로
+        <a href="build.html">제작 템플릿</a> 부터 시작하십시오.</p>
+      </figcaption>
+    </figure>
+    <figure>
+      <a class="shot" href="figures/fig_head.png"><img src="figures/fig_head.png"
+         alt="측정 헤드 조립 단면도. 알루미늄 블록에 프리즘과 O-링, 검출팔이 조립된 모습."></a>
+      <figcaption>
+        <h3>측정 헤드 조립 단면 <span class="badge b-old">참고용</span><br><code>fig_head.png</code></h3>
+        <p><b>알루미늄 절삭 가공 기준</b>입니다. 이 프로젝트는 절삭이 불가해서 위
+        <code>fig_printed</code> 로 갈아탔습니다. 부품 간 관계를 이해하는 용도로만 보십시오.</p>
+      </figcaption>
+    </figure>
+    <figure>
+      <a class="shot" href="figures/fig_cell.png"><img src="figures/fig_cell.png"
+         alt="플로우셀 설계 요점. 기포가 빠지는 경로와 온도 균일화 대책."></a>
+      <figcaption>
+        <h3>플로우셀 설계 요점 <span class="badge b-old">갱신 필요</span><br><code>fig_cell.png</code></h3>
+        <p>기포와 온도가 요점입니다. 기포 하나가 측정면에서 n=1.0 이 되어 경계를 망가뜨립니다.</p>
+        <p class="stale"><b>셀 용적이 2 mL 로 그려져 있습니다.</b> 프리즘 두께가 정해지며
+        60~480 µl 로 줄었습니다 — 이월 오차와 플러시 시간 면에서는 오히려 유리합니다.</p>
+      </figcaption>
+    </figure>
+    <figure>
+      <a class="shot" href="figures/fig_fluidics.png"><img src="figures/fig_fluidics.png"
+         alt="유체 회로도. 표준액, RO-DI, 수조물, 배수 네 개의 페리스탈틱 펌프."></a>
+      <figcaption>
+        <h3>유체 회로 <span class="badge b-ok">유효</span><br><code>fig_fluidics.png</code></h3>
+        <p>페리스탈틱 펌프 4개(표준액 / RO-DI / 수조물 / 배수). 정지 시 튜브가 눌려
+        <b>사이펀이 원천 차단</b>되는 것이 핵심이고, 수조에 연결되는 장치에서 이건 타협 대상이 아닙니다.</p>
+        <p>유휴 시 셀을 <b>35 PSU 표준액</b>으로 채워 둡니다 — RO-DI 로 채우면 잔류액 오차가 34배 커집니다.</p>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ═══════════ 전자 ═══════════ -->
+<section>
+  <div class="col">
+    <h2>전자·배선</h2>
+    <p class="sub">이 세 장은 정정 사항이 없습니다</p>
+  </div>
+  <div class="grid2">
+    <figure>
+      <a class="shot" href="figures/fig_breadboard.png"><img src="figures/fig_breadboard.png"
+         alt="브레드보드 배선도. 아두이노 나노, HC-06, TSL1401, MOSFET 모듈, 펌프 연결."></a>
+      <figcaption>
+        <h3>브레드보드 배선도 <span class="badge b-ok">유효</span><br><code>fig_breadboard.png</code></h3>
+        <p>Fritzing 스타일 전체 배선. <b>HC-06 RXD 에 1 kΩ/2 kΩ 분압기</b>를 빠뜨리지 마십시오 —
+        ZS-040 보드의 통신 핀은 3.3 V 소자라 나노의 5 V TX 를 직결하면 모듈이 손상됩니다.</p>
+      </figcaption>
+    </figure>
+    <figure>
+      <a class="shot" href="figures/fig_mosfet.png"><img src="figures/fig_mosfet.png"
+         alt="MOSFET 1채널 상세 회로. 게이트 저항, 풀다운, 플라이백 다이오드."></a>
+      <figcaption>
+        <h3>MOSFET 1채널 상세 <span class="badge b-ok">유효</span><br><code>fig_mosfet.png</code></h3>
+        <p>배선도의 모듈 블록 내부입니다. <b>게이트 10 kΩ 풀다운</b>이 없으면 전원 투입·리셋
+        순간에 게이트가 떠서 펌프가 폭주합니다 — 수조 옆에서는 물난리로 직결됩니다.</p>
+        <p><b>플라이백 다이오드 방향</b>을 반대로 달면 전원 투입 즉시 단락입니다.
+        IRF520 모듈은 로직레벨이 아니라 반쯤 켜진 채 발열하다 고장납니다.</p>
+      </figcaption>
+    </figure>
+    <figure>
+      <a class="shot" href="figures/fig_wiring.png"><img src="figures/fig_wiring.png"
+         alt="아두이노 나노 핀 배치 요약."></a>
+      <figcaption>
+        <h3>아두이노 핀 배치 요약 <span class="badge b-ok">유효</span><br><code>fig_wiring.png</code></h3>
+        <p>핀 여유가 충분하며, <b>12 V 펌프 전원은 로직과 분리</b>하고 GND 만 한 점에서 공통으로
+        묶습니다. 스케치는 아직 작성되지 않았습니다(2순위).</p>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>다시 그리려면</h2>
+    <p>모두 matplotlib 으로 생성합니다. 저장소를 받아서:</p>
+    <p><code>python src/diag1_optics.py</code> · <code>diag2_calibration.py</code> ·
+       <code>diag3_cell.py</code> · <code>diag4_fluidics.py</code> · <code>diag5_wiring.py</code> ·
+       <code>src/head.py</code> · <code>printed.py</code> · <code>mosfet.py</code> ·
+       <code>src/fritz.py</code></p>
+    <p>그림은 <code>docs/figures/</code> 에 바로 떨어져 기존 파일을 덮어씁니다. 시험용으로는
+    <code>PSU_FIG_DIR</code> 로 다른 곳을 지정하십시오. 한글 폰트는
+    <code>src/kfont.py</code> 가 플랫폼별로 찾습니다.</p>
+  </div>
+</section>
+
+</div>
+
+<div class="pager">
+  <h2>이어서 볼 것</h2>
+  <div class="pager-grid">
+    <a href="shadow-edge.html">
+      <span class="dir">← 원리</span>
+      <strong>그림자 경계의 정체</strong>
+      <span class="why">위 <code>fig_optics</code> 가 정지 그림으로 설명하는 것을 슬라이더로 움직여 봅니다.
+      프레넬 반사율로 실제 계산합니다.</span>
+    </a>
+    <a href="build.html">
+      <span class="dir">제작 →</span>
+      <strong>광학 벤치 조립 템플릿</strong>
+      <span class="why">도면이 오래됐다면 여기가 최신입니다. 1:1 인쇄 템플릿과
+      다이소 재료로 만드는 절차.</span>
+    </a>
+  </div>
+</div>
+
+<div class="wrap">
+<footer>
+  <div class="col">
+    <p>그림 클릭하면 원본 크기로 열립니다. 수치의 근거는 저장소의
+    <code>design_calc.py</code> · <code>src/segment_optics.py</code> ·
+    <code>src/illum_sim.py</code> 입니다.</p>
+    <p>실물 제작·측정은 아직 없습니다. 전부 계산상 설계입니다.</p>
+  </div>
+</footer>
+</div>
+
+</body>
+</html>

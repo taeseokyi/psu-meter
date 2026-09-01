@@ -21,8 +21,8 @@
 
 그림 저장 경로
 --------------
-기본값은 <저장소>/figures/ 입니다. 즉 스크립트를 그냥 실행하면 커밋된
-그림을 그 자리에서 덮어씁니다. 시험 삼아 돌려 보고 싶으면 PSU_FIG_DIR 로
+기본값은 <저장소>/docs/figures/ 입니다 — GitHub Pages 가 서비스하는 자리입니다.
+즉 스크립트를 그냥 실행하면 커밋된 그림을 그 자리에서 덮어씁니다. 시험 삼아 돌려 보고 싶으면 PSU_FIG_DIR 로
 다른 곳에 떨구십시오.
 
     PSU_FIG_DIR=/tmp/fig python head.py
@@ -49,7 +49,7 @@ GREY = '#78899A'
 
 # ── 그림 저장 경로 ────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
-FIGDIR = os.environ.get('PSU_FIG_DIR') or os.path.join(os.path.dirname(_HERE), 'figures')
+FIGDIR = os.environ.get('PSU_FIG_DIR') or os.path.join(os.path.dirname(_HERE), 'docs', 'figures')
 
 
 def figpath(name):

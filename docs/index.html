@@ -72,8 +72,20 @@ footer{padding:2.4rem 0 4rem;color:var(--ink-3);font-size:var(--step--1)}
 footer p{margin:0 0 .4rem}
 @media (max-width:640px){:root{--step-5:2.2rem}header{padding:2.6rem 0 2rem}section{padding:2.2rem 0}}
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
+
+<nav class="sitenav"><div class="sitenav-in">
+  <a href="./" class="brand" aria-current="page">psu-meter</a>
+  <a href="shadow-edge.html">원리</a>
+  <a href="illumination.html">조명계</a>
+  <a href="figures.html">도면</a>
+  <a href="build.html">제작</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/taeseokyi/psu-meter" class="ext">GitHub</a>
+</div></nav>
+
 <div class="wrap">
 
 <header>
@@ -104,6 +116,13 @@ footer p{margin:0 0 .4rem}
       <p>“슬릿과 방사를 동시에 할 수 없다”는 모순이 아닙니다 — 슬릿은 <b>위치</b>를 좁히고
       <b>방향</b>은 건드리지 않습니다. 조리개 두 개의 역할, 렌즈 유무가 표면 평면도
       요구를 어떻게 갈라놓는지, 그리고 왜 그것이 아직 미결정인지.</p>
+    </a>
+    <a href="figures.html">
+      <span class="tag">도면 · 9장</span>
+      <h3>설계 도면</h3>
+      <p>임계각 원리, 2점 보정 검량선, 측정 헤드, 플로우셀, 유체 회로, 배선까지.
+      matplotlib 으로 그린 것이고 <b>일부는 08-31 기준이라 정정이 반영돼 있지 않습니다</b> —
+      어느 것이 낡았고 무엇이 달라졌는지 도면마다 표시했습니다.</p>
     </a>
     <a href="build.html">
       <span class="tag">제작 · 1:1 인쇄</span>

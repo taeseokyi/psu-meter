@@ -174,8 +174,20 @@ footer p{margin:0 0 .4rem}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
+
+<nav class="sitenav"><div class="sitenav-in">
+  <a href="./" class="brand">psu-meter</a>
+  <a href="shadow-edge.html" aria-current="page">원리</a>
+  <a href="illumination.html">조명계</a>
+  <a href="figures.html">도면</a>
+  <a href="build.html">제작</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/taeseokyi/psu-meter" class="ext">GitHub</a>
+</div></nav>
+
 <div class="wrap">
 
 <header>
@@ -254,6 +266,13 @@ footer p{margin:0 0 .4rem}
       면에서 <strong>되튀어 다시 아래로</strong> 내려갑니다. 물은 광로 위에 있지 않고,
       그냥 면 위에 얹혀 있을 뿐입니다.</p>
       <p>한 점에 <strong>여러 각도의 빛이 동시에</strong> 도달합니다. 각도마다 운명이 갈립니다.</p>
+    </div>
+
+    <div class="seealso">
+      <span class="k">그런데 그 “여러 각도”를 어떻게 만드나</span>
+      좁은 슬릿에서 <b>넓은 방향</b>으로 쏘아야 합니다 — 모순처럼 들리지만 아닙니다.
+      <a href="illumination.html">슬릿과 부채꼴</a> 에서 그 구조를 봅니다.
+      집광형 LED 를 쓰면 <b>경계 자체가 생기지 않습니다.</b>
     </div>
 
     <div class="two" style="margin-bottom:1.75rem">
@@ -376,6 +395,13 @@ footer p{margin:0 0 .4rem}
       이 항목은 저장소의 경계 폭 예산(기하 5.2 + 회절 11.6 + 스펙트럼 0.4 px)에
       들어 있지 않습니다. 프레넬 경사는 <span class="hi">고정된 모양</span>이어서 2점 보정이 상쇄하므로
       계통 오차는 아니지만, 에지 검출 알고리즘의 선택을 좌우합니다.</p>
+    </div>
+
+    <div class="seealso">
+      <span class="k">실제로 만들 때</span>
+      경계 폭을 정하는 것은 슬릿 폭 하나입니다. 커터칼 날 2장과 복사용지 심으로
+      만들 수 있어서 <b>폭을 바꿔 가며 재는 실험이 사실상 무료</b>입니다 —
+      <a href="build.html">제작 템플릿</a> 참조.
     </div>
 
     <p style="margin-top:1.75rem">패널의 <strong>회절·기하 번짐 포함</strong>을 꺼 보면
@@ -750,5 +776,21 @@ if(window.matchMedia) window.matchMedia("(prefers-color-scheme:dark)")
 document.fonts&&document.fonts.ready.then(render);
 render();
 </script>
+<div class="pager">
+  <h2>이어서 볼 것</h2>
+  <div class="pager-grid">
+    <a href="illumination.html">
+      <span class="dir">조명계 →</span>
+      <strong>슬릿과 부채꼴</strong>
+      <span class="why">이 페이지는 "빛이 어떤 각도로 오는가"를 전제로 씁니다. 그 각도 부채꼴을 실제로 어떻게 만드는지 — 그리고 왜 슬릿과 방사가 모순이 아닌지.</span>
+    </a>
+    <a href="figures.html">
+      <span class="dir">도면</span>
+      <strong>설계 도면 9장</strong>
+      <span class="why">같은 원리를 정지 그림으로. <code>fig_optics</code> 와 <code>fig_cal</code> 이 이 페이지의 내용입니다.</span>
+    </a>
+  </div>
+</div>
+
 </body>
 </html>

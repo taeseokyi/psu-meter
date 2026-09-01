@@ -1,6 +1,6 @@
 # 해수 수조 광학식 염도계 — 부품 목록 (BOM)
 
-배선도: `figures/fig_breadboard.png`
+배선도: `docs/figures/fig_breadboard.png`
 설계 계산: `design_calc.py`
 설계 문서: `해수수조_광학식_염도측정_설계.pptx`
 

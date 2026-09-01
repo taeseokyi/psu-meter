@@ -1,7 +1,13 @@
 # 해수 수조 광학식 염도계 (psu-meter)
 
 > **설명 페이지 (GitHub Pages)** — <https://taeseokyi.github.io/psu-meter/>
-> 원리·조명계 인터랙티브 설명과 **1:1 인쇄 조립 템플릿**을 브라우저에서 볼 수 있습니다.
+>
+> | | |
+> |---|---|
+> | [원리](https://taeseokyi.github.io/psu-meter/shadow-edge.html) | 그림자 경계의 정체 — 인터랙티브 |
+> | [조명계](https://taeseokyi.github.io/psu-meter/illumination.html) | 슬릿과 부채꼴 — 인터랙티브 |
+> | [도면](https://taeseokyi.github.io/psu-meter/figures.html) | 설계 도면 9장. 낡은 것 표시 |
+> | [제작](https://taeseokyi.github.io/psu-meter/build.html) | 1:1 인쇄 조립 템플릿 |
 
 해수 수조의 염도를 **34 PSU 근처로 유지·모니터링**하기 위한 광학식 염도 측정 장치의 설계 자료입니다.
 전기전도도 방식이 아니라 **임계각 굴절계(critical-angle refractometer)** 방식이며, 하루 2회 무인 자동 측정을 목표로 합니다.
@@ -47,7 +53,7 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 | **[`ILLUMINATION.md`](ILLUMINATION.md)** | 조명계 설계. 슬릿·입사창의 역할, 두 배치와 평면도 요구. **미결정 항목 있음** |
 | **[`HOBBY_BUILD.md`](HOBBY_BUILD.md)** | 취미 제작 가이드. 3D 프린터 + 다이소 재료로 1순위 벤치 만들기 |
 
-### 도면 (`figures/`)
+### 도면 (`docs/figures/`)
 
 | 파일 | 내용 |
 |---|---|
@@ -130,7 +136,7 @@ python src/segment_optics.py
 
 ## 도해 재생성 (`src/`)
 
-`figures/`의 그림은 모두 matplotlib으로 생성한 것입니다. 수정이 필요하면:
+`docs/figures/`의 그림은 모두 matplotlib으로 생성한 것입니다. 수정이 필요하면:
 
 ```bash
 python src/diag1_optics.py       # fig_optics.png     임계각 원리
@@ -144,7 +150,7 @@ python src/mosfet.py             # fig_mosfet.png     MOSFET 회로
 python src/fritz.py              # fig_breadboard.png 브레드보드 배선도
 ```
 
-**그림은 `figures/`에 바로 떨어져 기존 파일을 덮어씁니다.** 시험 삼아 돌려 보려면
+**그림은 `docs/figures/`에 바로 떨어져 기존 파일을 덮어씁니다.** 시험 삼아 돌려 보려면
 `PSU_FIG_DIR` 로 다른 곳을 지정하십시오.
 
 ```bash
@@ -163,7 +169,7 @@ npm install     # pptxgenjs (최초 1회)
 npm run build   # 해수수조_광학식_염도측정_설계.pptx 를 저장소 루트에 씀
 ```
 
-`figures/`의 5장(optics · cal · cell · fluidics · wiring)을 읽어 박아 넣으므로
+`docs/figures/`의 5장(optics · cal · cell · fluidics · wiring)을 읽어 박아 넣으므로
 그림을 먼저 재생성해야 합니다. 나머지 4장(head · printed · mosfet · breadboard)은
 pptx에 들어가지 않고 저장소 문서에서만 참조됩니다.
 

@@ -89,8 +89,20 @@ footer{padding:2.2rem 0 3.5rem;color:var(--ink-3);font-size:var(--step--1)}
   p,li,td,th{font-size:8pt;line-height:1.4}
 }
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
+
+<nav class="sitenav"><div class="sitenav-in">
+  <a href="./" class="brand">psu-meter</a>
+  <a href="shadow-edge.html">원리</a>
+  <a href="illumination.html">조명계</a>
+  <a href="figures.html">도면</a>
+  <a href="build.html" aria-current="page">제작</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/taeseokyi/psu-meter" class="ext">GitHub</a>
+</div></nav>
+
 <div class="wrap">
 
 <header>
@@ -150,8 +162,8 @@ footer{padding:2.2rem 0 3.5rem;color:var(--ink-3);font-size:var(--step--1)}
             stroke="var(--draw-soft)" stroke-width="0.3"/>
       <text x="46" y="16.5" font-size="4" fill="var(--draw)">15.37°</text>
       <text x="100" y="7.5" font-size="3.4" fill="var(--draw-soft)" text-anchor="middle">밑변 180.0 mm</text>
-      <text x="193" y="36" font-size="3.4" fill="var(--draw-soft)"
-            transform="rotate(90 193 36)" text-anchor="middle">높이 49.5</text>
+      <text x="186" y="36" font-size="3.4" fill="var(--draw-soft)"
+            transform="rotate(90 186 36)" text-anchor="middle">높이 49.5</text>
       <text x="105" y="34" font-size="3.4" fill="var(--draw-soft)">← 이 변을 팔 축에 맞춤</text>
     </svg>
   </div>
@@ -199,9 +211,9 @@ footer{padding:2.2rem 0 3.5rem;color:var(--ink-3);font-size:var(--step--1)}
         <line x1="52.32" y1="19.24" x2="81.16" y2="27.18"/>
         <line x1="-52.32" y1="19.24" x2="-81.16" y2="27.18"/>
       </g>
-      <text x="55" y="46" font-size="3.2" fill="var(--draw-soft)">주황 = 허브 접착 패드 구간 (L 31~61)</text>
+      <text x="-40" y="50" font-size="3.2" fill="var(--draw-soft)">주황 = 허브 접착 패드 구간 (팔 축 L 31~61 mm)</text>
       <text x="-100" y="-8" font-size="3.4" fill="var(--draw-soft)">프리즘: 활꼴 현 60 · 사지타 20 · 두께 6 mm (아크릴)</text>
-      <text x="-100" y="66" font-size="3.2" fill="var(--draw-soft)">이 도면은 입사면 단면입니다. 프리즘 두께 방향은 지면에 수직.</text>
+      <text x="-100" y="64" font-size="3.2" fill="var(--draw-soft)">이 도면은 입사면 단면입니다. 프리즘 두께 방향은 지면에 수직.</text>
     </svg>
   </div>
 </section>
@@ -213,8 +225,9 @@ footer{padding:2.2rem 0 3.5rem;color:var(--ink-3);font-size:var(--step--1)}
     <p class="sub">축소도 <b>1:2.5</b> — 치수 숫자만 읽으십시오. 이 도면은 1:1 이 아닙니다</p>
   </div>
   <div class="plate">
-    <svg width="240mm" height="60mm" viewBox="-15 -12 300 75" xmlns="http://www.w3.org/2000/svg">
-      <g transform="scale(0.5)">
+    <!-- 1 유저단위 = 1 모델 mm, 256mm/640단위 = 0.4 -> 정확히 1:2.5 -->
+    <svg width="256mm" height="86mm" viewBox="-25 -25 640 215" xmlns="http://www.w3.org/2000/svg">
+      <g>
         <!-- 바닥판 -->
         <line x1="-20" y1="166" x2="580" y2="166" stroke="var(--draw)" stroke-width="1.6"/>
         <!-- 받침대 -->
@@ -256,6 +269,12 @@ footer{padding:2.2rem 0 3.5rem;color:var(--ink-3);font-size:var(--step--1)}
 <section>
   <div class="col">
     <h2>5. 잊으면 실패하는 다섯 가지</h2>
+    <div class="seealso">
+      <span class="k">왜 그런지 알고 싶으면</span>
+      1·3번(검게 칠하기, 확산광)은 그냥 조립 팁이 아니라 <b>측정 원리에서 나오는 요구</b>입니다.
+      <a href="illumination.html">슬릿과 부채꼴</a> §0 과
+      <a href="shadow-edge.html">그림자 경계의 정체</a> 를 보면 왜 타협할 수 없는지 알 수 있습니다.
+    </div>
     <ol>
       <li><b>내부를 전부 무광 검정으로.</b> 미광이 경계 대비를 죽입니다. 다이소 락카
       한 통이 이 프로젝트에서 가장 값진 광학 부품입니다</li>
@@ -273,10 +292,25 @@ footer{padding:2.2rem 0 3.5rem;color:var(--ink-3);font-size:var(--step--1)}
     <p>치수는 <code>src/illum_sim.py</code> · <code>src/segment_optics.py</code> 계산값입니다.
     인쇄 부품은 <code>scad/optical_bench.scad</code>, 조립 절차는 <code>HOBBY_BUILD.md</code>.</p>
     <p>실물 제작·측정은 아직 없습니다. 전부 계산상 설계입니다.</p>
-    <p class="noprint"><a href="./">← psu-meter 문서 모음</a></p>
   </div>
 </footer>
 
 </div>
+<div class="pager">
+  <h2>이어서 볼 것</h2>
+  <div class="pager-grid">
+    <a href="illumination.html">
+      <span class="dir">← 조명계</span>
+      <strong>슬릿과 부채꼴</strong>
+      <span class="why">LED 돔을 왜 갈아야 하고 확산판이 왜 필요한지. 조립 순서만 보고 넘기면 여기서 실패합니다.</span>
+    </a>
+    <a href="figures.html">
+      <span class="dir">도면</span>
+      <strong>설계 도면 9장</strong>
+      <span class="why">유체 회로·배선도. 광학이 통과한 뒤 붙일 것들입니다.</span>
+    </a>
+  </div>
+</div>
+
 </body>
 </html>

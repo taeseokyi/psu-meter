@@ -6,7 +6,7 @@ const path = require('path');
 //   node src/build.js      (저장소 루트에서)
 //   cd src && node build.js
 const ROOT = path.join(__dirname, '..');
-const FIG  = process.env.PSU_FIG_DIR || path.join(ROOT, 'figures');
+const FIG  = process.env.PSU_FIG_DIR || path.join(ROOT, 'docs', 'figures');
 const OUT  = process.env.PSU_PPTX    || path.join(ROOT, '해수수조_광학식_염도측정_설계.pptx');
 const fig  = n => path.join(FIG, n);
 

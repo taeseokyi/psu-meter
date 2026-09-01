@@ -151,8 +151,20 @@ footer p{margin:0 0 .4rem}
 @media (max-width:640px){:root{--step-5:2.2rem;--step-3:1.5rem}header{padding:2.5rem 0 2rem}section{padding:2.3rem 0}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
+
+<nav class="sitenav"><div class="sitenav-in">
+  <a href="./" class="brand">psu-meter</a>
+  <a href="shadow-edge.html">원리</a>
+  <a href="illumination.html" aria-current="page">조명계</a>
+  <a href="figures.html">도면</a>
+  <a href="build.html">제작</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/taeseokyi/psu-meter" class="ext">GitHub</a>
+</div></nav>
+
 <div class="wrap">
 
 <header>
@@ -180,6 +192,12 @@ footer p{margin:0 0 .4rem}
       <p>문틈은 좁지만 그 빛은 방 안 어디서나 보입니다. 틈 뒤가 확산광이면 틈의 각 점이
       모든 방향으로 방출합니다. <b>순서가 중요합니다 — 확산 먼저, 좁히기 나중.</b></p>
     </div>
+  </div>
+
+  <div class="seealso" style="margin:2rem 0 0">
+    <span class="k">먼저 읽으면 좋은 것</span>
+    왜 “여러 각도가 동시에” 필요한지는 <a href="shadow-edge.html">그림자 경계의 정체</a> 에
+    있습니다. 측정 자체가 <b>“어느 각도에서 전반사가 끊기는가”</b> 이기 때문입니다.
   </div>
 
   <div class="rig">
@@ -368,6 +386,13 @@ footer p{margin:0 0 .4rem}
     저장소의 계산이 이미 배치 A 를 가정하고 있으므로 — <code>segment_optics.py</code> 는
     광선을 측정면의 <code>x0 = ±슬릿/2</code> 에서 출발시킵니다 — <b>모델은 맞고, BOM 에
     콘덴서 렌즈가 빠져 있는 것</b>이 실제 상태입니다.</p>
+
+    <div class="seealso">
+      <span class="k">부품으로 옮기면</span>
+      확산판은 <b>유산지(베이킹 시트)</b>, 슬릿은 <b>커터칼 날 2장 + 복사용지 심</b>,
+      팔은 우드락 덕트로 만듭니다. 인쇄 부품은 허브 하나면 되고 나머지는 다이소에 있습니다 —
+      <a href="build.html">제작 템플릿</a>.
+    </div>
 
     <p>추가할 부품은 평볼록 렌즈 하나, 확산판, 슬릿 조각입니다. 조리개가 1.45 mm 라
     f/17 의 아주 느린 광학계이고 광량이 적지만, TSL1401 의 적분시간이 자유변수이므로
@@ -626,5 +651,21 @@ if(window.matchMedia) window.matchMedia("(prefers-color-scheme:dark)").addEventL
 document.fonts&&document.fonts.ready.then(render);
 render();
 </script>
+<div class="pager">
+  <h2>이어서 볼 것</h2>
+  <div class="pager-grid">
+    <a href="shadow-edge.html">
+      <span class="dir">← 원리</span>
+      <strong>그림자 경계의 정체</strong>
+      <span class="why">“그림자”가 무엇이고 어레이가 무엇을 재는지. 이 페이지의 부채꼴이 왜 필요한지가 거기 있습니다.</span>
+    </a>
+    <a href="build.html">
+      <span class="dir">제작 →</span>
+      <strong>광학 벤치 조립 템플릿</strong>
+      <span class="why">여기서 정한 슬릿 0.3 mm 와 팔 15.37° 를 실제 부품으로. 1:1 인쇄 템플릿과 다이소 재료.</span>
+    </a>
+  </div>
+</div>
+
 </body>
 </html>

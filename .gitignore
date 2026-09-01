@@ -11,7 +11,7 @@ Thumbs.db
 .DS_Store
 desktop.ini
 
-# 도해 생성 중간 산출물
+# 도해 생성 중간 산출물 (그림 본체는 docs/figures/ 에 커밋됩니다)
 src/*.png
 src/crop.png
 
