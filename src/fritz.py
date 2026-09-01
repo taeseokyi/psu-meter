@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
 """Fritzing 스타일 브레드보드 배선도 생성"""
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle, Circle, PathPatch, Polygon
 from matplotlib.path import Path
@@ -382,6 +382,6 @@ ax.text(14.0, 3.8,
         '모터마다 플라이백 다이오드 없으면 역기전력이 MCU 를 리셋',
         fontsize=8.6, color=INK2, va='center', zorder=7)
 
-plt.savefig('/home/claude/salinity/fig_breadboard.png', dpi=150,
+plt.savefig(figpath('fig_breadboard.png'), dpi=150,
             facecolor='white', bbox_inches='tight', pad_inches=0.15)
 print('ok')

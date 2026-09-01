@@ -1,4 +1,4 @@
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle
 
@@ -63,5 +63,5 @@ ax.text(0.25,6.16,'아두이노 나노 배선  —  핀 배치',fontsize=14.5,co
 ax.text(0.25,5.80,'SoftwareSerial 은 송신 중 인터럽트를 막으므로, TSL1401 프레임을 읽는 동안에는 블루투스 통신을 하지 않도록 순차 처리합니다.',
         fontsize=9.4,color=GREY,va='center')
 ax.set_xlim(0,12.55); ax.set_ylim(0.25,6.40); ax.axis('off')
-plt.savefig('fig_wiring.png',dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.14)
+plt.savefig(figpath('fig_wiring.png'),dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.14)
 print('ok')

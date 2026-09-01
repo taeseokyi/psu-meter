@@ -15,8 +15,9 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 
 | 항목 | 값 |
 |---|---|
-| 목표 정밀도 | **± 0.12 PSU** (RSS) |
+| 목표 정밀도 | **± 0.124 PSU** (RSS) |
 | 감도 | 253 µrad / PSU · 검출팔 250 mm에서 **1 px ≈ 1 PSU** |
+| 경계 폭 | 약 12.7 px ≈ 10.8 PSU (회절 지배). 오차가 아니라 SNR 요구로 바뀜 — [HANDOFF.md](HANDOFF.md) §5 |
 | 측정 주기 | 1일 2회, 1 사이클 약 8분 |
 | 제어 | Arduino Nano + HC-06 블루투스, 스마트폰 시리얼 터미널 |
 | 비교 대상 | ATAGO PAL-06S 포켓 굴절계 = ±2 PSU |
@@ -27,12 +28,19 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 
 ### 먼저 볼 것
 
+> **⚠ pptx / pdf 는 2026-08-31 기준입니다.** 09-01 에 정정된 내용(프리즘을 BK7 →
+> 아크릴 활꼴로, 두 팔 사이각 123.9° → 149.3°, 회절 항목 추가, 파장 민감도 14배 하향,
+> 오차예산 온도 항목)이 **반영돼 있지 않습니다.**
+> 슬라이드와 아래 마크다운 문서가 어긋나면 **마크다운 쪽이 최신**입니다.
+> 정정 목록은 [HANDOFF.md](HANDOFF.md) §4 를 보십시오.
+
 | 파일 | 내용 |
 |---|---|
-| **`해수수조_광학식_염도측정_설계.pptx`** | 18장짜리 설계 문서. 원리·오차·배선·명령어·부품·안전 전체 |
-| `해수수조_광학식_염도측정_설계.pdf` | 위 문서의 PDF 사본 (빠른 열람용) |
+| **`해수수조_광학식_염도측정_설계.pptx`** | 18장짜리 설계 문서. 원리·오차·배선·명령어·부품·안전 전체 (08-31 기준) |
+| `해수수조_광학식_염도측정_설계.pdf` | 위 문서의 PDF 사본 (빠른 열람용, 08-31 기준) |
 | **[`HANDOFF.md`](HANDOFF.md)** | 왜 이렇게 설계했는지, 무엇이 미해결인지, 다음에 뭘 할지 |
 | **[`BOM.md`](BOM.md)** | 부품 목록과 조달처. 확인된 링크 / 검색어 / 주의 3단계로 구분 |
+| **[`PRISM_SOURCING.md`](PRISM_SOURCING.md)** | 프리즘 후보 비교와 선정 근거. **주문 전에 이것부터** |
 
 ### 도면 (`figures/`)
 
@@ -53,6 +61,7 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 | 파일 | 내용 |
 |---|---|
 | `design_calc.py` | 모든 설계 수치의 계산 근거. 외부 라이브러리 불필요 |
+| `src/segment_optics.py` | 활꼴 광선추적 · 경계 폭 예산(회절·슬릿·팔 길이) · 렌즈 배치 비교 · 파장 분산 · AR 코팅 TMM |
 
 ---
 
@@ -76,22 +85,39 @@ ARM_MM    = 250.0    # 검출팔 길이
 예를 들어 하우징 공간 때문에 검출팔을 200 mm로 줄이면 분해능이 0.050 → 0.063 PSU로 바뀝니다.
 **프리즘을 다른 종류로 바꿔도 됩니다** — 2점 자가보정이 실제 기울기를 실측하므로, 계산값은 "감도가 충분한가, 두 보정점이 128 px 안에 들어오는가"만 확인하는 용도입니다.
 
+### 프리즘 형상 비교
+
+```bash
+python src/segment_optics.py
+```
+
+프리즘이 정확한 반원이 아니어도 되는지, AR 코팅이 임계각을 움직이는지,
+두 광학팔 사이각을 몇 도로 잡아야 하는지가 형상별로 출력됩니다.
+이어서 경계 폭이 무엇에 지배되는지(회절), 검출팔·슬릿 폭을 바꾸면 무엇이 달라지는지,
+렌즈를 넣으면 어디까지 좋아지고 대신 무엇을 요구받는지가 표로 나옵니다.
+
 ### 만들기 시작할 때
 
-1. `BOM.md`로 부품 주문 — 값싼 프리즘 먼저
-2. `fig_printed.png`대로 헤드 출력 (PETG 검정)
-3. `fig_breadboard.png` + `fig_mosfet.png`대로 배선
-4. `HANDOFF.md`의 "다음 단계" 순서대로 진행
+1. `PRISM_SOURCING.md`대로 프리즘 주문 (사이언스트리 2세트, 21,000원)
+2. `BOM.md`로 나머지 부품 주문
+3. **프리즘 도착 즉시 1순위 검증** — 밀봉 불필요. 평면 위에 RO-DI/표준액 액적만
+4. 두께 실측 후 `fig_printed.png` 셀 치수를 다시 잡아 헤드 출력 (PETG 검정)
+5. `fig_breadboard.png` + `fig_mosfet.png`대로 배선
+6. `HANDOFF.md`의 "다음 단계" 순서대로 진행
 
 ---
 
-## 반드시 지켜야 할 세 가지
+## 반드시 지켜야 할 네 가지
 
 **HC-06 RXD에 1 kΩ/2 kΩ 분압기.** ZS-040 보드의 통신 핀은 3.3 V 소자입니다. 나노의 5 V TX를 직결하면 모듈이 손상됩니다.
 
 **MOSFET 게이트에 10 kΩ 풀다운.** 없으면 전원 투입·리셋 순간에 게이트가 떠서 펌프가 제멋대로 돕니다. 수조 옆에서는 물난리로 직결됩니다.
 
 **페리스탈틱 펌프만 사용.** 정지 시 튜브가 눌려 사이펀이 원천 차단됩니다. 다른 펌프는 정전 시 수조를 바닥으로 옮겨놓을 수 있습니다.
+
+**표준액과 시료를 같은 온도에서 잴 것.** 자가보정이 지우는 온도 오차는 둘이 *함께* 드리프트할 때뿐입니다.
+둘 **사이**에 온도차가 있으면 0.667 PSU/°C 가 그대로 살아납니다 — 0.1 PSU 를 지키려면 **0.15 °C 이내**여야 합니다.
+온도 센서는 수조가 아니라 **셀 유로 안**에 넣고, 표준액과 시료 양쪽을 재서 보정하십시오.
 
 ---
 
@@ -100,13 +126,39 @@ ARM_MM    = 250.0    # 검출팔 길이
 `figures/`의 그림은 모두 matplotlib으로 생성한 것입니다. 수정이 필요하면:
 
 ```bash
-cd src
-python head.py        # 측정 헤드 단면도
-python printed.py     # 3D 프린팅 분해도
-python mosfet.py      # MOSFET 회로
-python fritz.py       # 브레드보드 배선도
-node  build.js        # 설계 문서 pptx 전체
+python src/diag1_optics.py       # fig_optics.png     임계각 원리
+python src/diag2_calibration.py  # fig_cal.png        2점 보정 검량선
+python src/diag3_cell.py         # fig_cell.png       플로우셀
+python src/diag4_fluidics.py     # fig_fluidics.png   유체 회로
+python src/diag5_wiring.py       # fig_wiring.png     핀 배치
+python src/head.py               # fig_head.png       측정 헤드 단면도
+python src/printed.py            # fig_printed.png    3D 프린팅 분해도
+python src/mosfet.py             # fig_mosfet.png     MOSFET 회로
+python src/fritz.py              # fig_breadboard.png 브레드보드 배선도
 ```
 
-한글 폰트 등록은 `src/kfont.py`가 처리합니다 (Noto Sans CJK 필요).
-생성물은 `src/`에 떨어지므로 `figures/`로 옮기십시오.
+**그림은 `figures/`에 바로 떨어져 기존 파일을 덮어씁니다.** 시험 삼아 돌려 보려면
+`PSU_FIG_DIR` 로 다른 곳을 지정하십시오.
+
+```bash
+PSU_FIG_DIR=/tmp/fig python src/head.py
+```
+
+한글 폰트는 `src/kfont.py`가 플랫폼별로 알아서 찾습니다
+(윈도우 맑은고딕·나눔고딕, 리눅스 Noto Sans CJK, macOS). 못 찾으면 경고를 내고 계속하므로
+한글이 깨져 나오면 `PSU_FONT=/경로/폰트.ttf` 로 직접 지정하십시오.
+필요한 것은 matplotlib 뿐입니다: `pip install matplotlib`
+
+설계 문서 pptx 는 Node 로 만듭니다.
+
+```bash
+npm install     # pptxgenjs (최초 1회)
+npm run build   # 해수수조_광학식_염도측정_설계.pptx 를 저장소 루트에 씀
+```
+
+`figures/`의 5장(optics · cal · cell · fluidics · wiring)을 읽어 박아 넣으므로
+그림을 먼저 재생성해야 합니다. 나머지 4장(head · printed · mosfet · breadboard)은
+pptx에 들어가지 않고 저장소 문서에서만 참조됩니다.
+
+`python design_calc.py` 와 `python src/segment_optics.py` 는 그림 없이 수치만 출력하며
+외부 라이브러리가 필요 없습니다.

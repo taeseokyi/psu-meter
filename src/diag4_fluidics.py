@@ -1,4 +1,4 @@
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Circle, Polygon
 import math
@@ -43,5 +43,5 @@ ax.text(0.25,0.62,'페리스탈틱 펌프는 정지 시 튜브가 눌려 있어 
                   '표백제 등 수조에 위험한 세정액을 쓸 때는 복귀 라인을 물리적으로 분리해 폐수로만 보내십시오.',
         fontsize=9.6,color=INK,va='center',linespacing=1.7)
 ax.set_xlim(0,10.35); ax.set_ylim(0.30,4.80); ax.axis('off')
-plt.savefig('fig_fluidics.png',dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.14)
+plt.savefig(figpath('fig_fluidics.png'),dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.14)
 print('ok')

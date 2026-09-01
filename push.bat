@@ -5,6 +5,11 @@ cd /d "%~dp0"
 
 set REPO=https://github.com/taeseokyi/psu-meter.git
 
+rem 커밋 메시지: 인자로 주면 그것을, 없으면 기본값을 쓴다.
+rem   push.bat "회절 모델 수정"
+set "MSG=%~1"
+if "%MSG%"=="" set "MSG=설계 자료 갱신"
+
 echo ==========================================================
 echo   psu-meter  ^-^>  GitHub push
 echo   %REPO%
@@ -38,8 +43,8 @@ git add -A
 if errorlevel 1 goto :fail
 
 echo.
-echo [4/6] 커밋
-git commit -m "초기 커밋: 해수 수조 광학식 염도계 설계 자료"
+echo [4/6] 커밋  -  %MSG%
+git commit -m "%MSG%"
 if errorlevel 1 (
   echo        변경 사항이 없어 커밋을 건너뜁니다.
 )

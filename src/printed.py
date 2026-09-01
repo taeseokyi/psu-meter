@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """3D 프린팅용 측정 헤드 — 분해도"""
 import math
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle, Circle, Wedge, Polygon
 import numpy as np
@@ -188,6 +188,6 @@ ax.text(106.5, 6.4,
         '내부 에폭시 코팅으로 처리하십시오.',
         fontsize=8.2, color=INK, va='center', linespacing=1.6, zorder=5)
 
-plt.savefig('/home/claude/salinity/fig_printed.png', dpi=150, facecolor='white',
+plt.savefig(figpath('fig_printed.png'), dpi=150, facecolor='white',
             bbox_inches='tight', pad_inches=0.15)
 print('ok')

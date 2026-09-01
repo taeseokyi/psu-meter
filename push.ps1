@@ -2,6 +2,12 @@
 # 실행:  powershell -ExecutionPolicy Bypass -File .\push.ps1
 #   또는 파일 우클릭 → "PowerShell에서 실행"
 
+param(
+    # 커밋 메시지. 생략하면 아래 기본값을 씁니다.
+    #   powershell -ExecutionPolicy Bypass -File .\push.ps1 "회절 모델 수정"
+    [string]$Message = '설계 자료 갱신'
+)
+
 $ErrorActionPreference = 'Continue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -43,8 +49,8 @@ if ($LASTEXITCODE -ne 0) { Read-Host '실패. 엔터로 종료'; exit 1 }
 
 # 4) 커밋
 Write-Host ''
-Write-Host '[4/6] 커밋'
-git commit -m '초기 커밋: 해수 수조 광학식 염도계 설계 자료'
+Write-Host "[4/6] 커밋  —  $Message"
+git commit -m $Message
 if ($LASTEXITCODE -ne 0) {
     Write-Host '       변경 사항이 없어 커밋을 건너뜁니다.' -ForegroundColor DarkGray
 }

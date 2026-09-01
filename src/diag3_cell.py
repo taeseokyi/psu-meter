@@ -1,4 +1,4 @@
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, FancyBboxPatch, Wedge, Circle
 import math
@@ -49,5 +49,5 @@ for i,t in enumerate(pts):
     y-=0.85
 
 ax.set_xlim(0,11.6); ax.set_ylim(0.42,4.72); ax.axis('off')
-plt.savefig('fig_cell.png',dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.14)
+plt.savefig(figpath('fig_cell.png'),dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.14)
 print('ok')

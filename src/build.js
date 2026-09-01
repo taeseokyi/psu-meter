@@ -1,5 +1,14 @@
 const pptxgen = require('pptxgenjs');
 const fs = require('fs');
+const path = require('path');
+
+// 그림과 결과물은 저장소 기준 경로로 잡는다. 어느 디렉터리에서 실행해도 동작한다.
+//   node src/build.js      (저장소 루트에서)
+//   cd src && node build.js
+const ROOT = path.join(__dirname, '..');
+const FIG  = process.env.PSU_FIG_DIR || path.join(ROOT, 'figures');
+const OUT  = process.env.PSU_PPTX    || path.join(ROOT, '해수수조_광학식_염도측정_설계.pptx');
+const fig  = n => path.join(FIG, n);
 
 const P = { deep:'065A82', teal:'1C7293', mid:'21295C', amb:'E8901F',
             ink:'1A2430', grey:'78899A', card:'F2F7FA', line:'D8E3EA',
@@ -109,7 +118,7 @@ const mono = (t) => ({ text:t, options:{ fontFace:'Courier New', fontSize:10.5 }
 {
   const s = pres.addSlide();
   head(s, '구조와 원리 —  임계각 굴절계', '프리즘·시료 경계에서 전반사가 시작되는 각도를 읽어 굴절률을 구합니다.');
-  s.addImage({ path:'fig_optics.png', x:0.62, y:1.48, w:12.06, h:4.98 });
+  s.addImage({ path:fig('fig_optics.png'), x:0.62, y:1.48, w:12.06, h:4.98 });
   s.addNotes('LED는 부채꼴 광선속으로 측정면 한 점에 모여야 합니다. 단일 평행광이면 각도 분포가 없어 경계선 자체가 생기지 않습니다.');
 }
 
@@ -153,7 +162,7 @@ const mono = (t) => ({ text:t, options:{ fontFace:'Courier New', fontSize:10.5 }
 {
   const s = pres.addSlide();
   head(s, '검출기 —  TSL1401CL 리니어 어레이', '128 픽셀 × 63.5 µm.  250 mm 검출팔에서 1 픽셀이 곧 1 PSU가 됩니다.');
-  s.addImage({ path:'fig_cal.png', x:0.62, y:1.42, w:8.35, h:4.35 });
+  s.addImage({ path:fig('fig_cal.png'), x:0.62, y:1.42, w:8.35, h:4.35 });
 
   const items = [
     ['왜 어레이인가', '2분할 포토다이오드는 34 PSU 밖의 RO-DI 를 볼 수 없어 1점 보정만 가능합니다.'],
@@ -248,7 +257,7 @@ const mono = (t) => ({ text:t, options:{ fontFace:'Courier New', fontSize:10.5 }
 {
   const s = pres.addSlide();
   head(s, '플로우셀 설계', '상시 침지가 아니라 필요할 때만 물을 받아 재는 구조. 생물오손 문제를 구조적으로 회피합니다.');
-  s.addImage({ path:'fig_cell.png', x:2.14, y:1.44, w:9.01, h:4.70 });
+  s.addImage({ path:fig('fig_cell.png'), x:2.14, y:1.44, w:9.01, h:4.70 });
   s.addText('측정 사이에는 셀을 비워 말리지 않고 35.0 PSU 표준액으로 채워둡니다. 마르면 측정면에 염 결정이 남아 그대로 오차가 되기 때문입니다.',
     { x:0.62, y:6.32, w:12.06, h:0.4, fontSize:11.5, color:P.grey, fontFace:F, align:'center',
       isTextBox:true, margin:0 });
@@ -258,7 +267,7 @@ const mono = (t) => ({ text:t, options:{ fontFace:'Courier New', fontSize:10.5 }
 {
   const s = pres.addSlide();
   head(s, '유체 회로', '페리스탈틱 펌프 4개로 밸브 없이 구성. 각 펌프가 MOSFET 하나로 제어됩니다.');
-  s.addImage({ path:'fig_fluidics.png', x:1.20, y:1.50, w:10.90, h:5.40 });
+  s.addImage({ path:fig('fig_fluidics.png'), x:1.20, y:1.50, w:10.90, h:5.40 });
 }
 
 // ============================================================ 10 보관액 선택
@@ -302,7 +311,7 @@ const mono = (t) => ({ text:t, options:{ fontFace:'Courier New', fontSize:10.5 }
 {
   const s = pres.addSlide();
   head(s, '아두이노 배선도', 'Arduino Nano 기준. 핀 여유가 충분하며, 12 V 펌프 전원은 로직과 분리합니다.');
-  s.addImage({ path:'fig_wiring.png', x:1.59, y:1.42, w:10.12, h:5.40 });
+  s.addImage({ path:fig('fig_wiring.png'), x:1.59, y:1.42, w:10.12, h:5.40 });
 }
 
 // ============================================================ 12 HC-06 상세
@@ -567,5 +576,5 @@ const mono = (t) => ({ text:t, options:{ fontFace:'Courier New', fontSize:10.5 }
       lineSpacing:15, paraSpaceAfter:5, bullet:true, isTextBox:true, margin:0 });
 }
 
-pres.writeFile({ fileName: '해수수조_광학식_염도측정_설계.pptx' })
+pres.writeFile({ fileName: OUT })
   .then(f => console.log('WROTE', f));

@@ -14,3 +14,6 @@ desktop.ini
 # 도해 생성 중간 산출물
 src/*.png
 src/crop.png
+
+# Node (설계 문서 pptx 생성용 — src/build.js)
+node_modules/

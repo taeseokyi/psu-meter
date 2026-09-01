@@ -1,4 +1,4 @@
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -43,5 +43,5 @@ ax.grid(axis='y',color='#E3EBF0',lw=0.8,zorder=0)
 ax.set_title('검량선:  RO-DI 와 표준액 두 점으로 매 측정마다 자가보정',fontsize=13.5,color=MID,
              fontweight='bold',loc='left',pad=14)
 plt.tight_layout(pad=0.6)
-plt.savefig('fig_cal.png',dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.12)
+plt.savefig(figpath('fig_cal.png'),dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.12)
 print('ok')

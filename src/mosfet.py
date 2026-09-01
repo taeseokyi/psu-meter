@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """MOSFET 펌프 구동 회로 상세"""
 import math
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch, Rectangle, Circle, Polygon
 import numpy as np
@@ -204,6 +204,6 @@ ax.text(81.0, 5.0,
         '반쯤 켜진 상태로 발열하다 고장납니다.  →  IRLZ44N · IRL520 · IRLB8721 · D4184 모듈처럼 로직레벨을 고르십시오.',
         fontsize=8.8, color=INK, va='center', linespacing=1.7, zorder=5)
 
-plt.savefig('/home/claude/salinity/fig_mosfet.png', dpi=150, facecolor='white',
+plt.savefig(figpath('fig_mosfet.png'), dpi=150, facecolor='white',
             bbox_inches='tight', pad_inches=0.15)
 print('ok')

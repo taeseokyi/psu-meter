@@ -1,0 +1,12 @@
+{
+  "name": "psu-meter-docs",
+  "version": "1.0.0",
+  "private": true,
+  "description": "해수 수조 광학식 염도계 — 설계 문서(pptx) 생성",
+  "scripts": {
+    "build": "node src/build.js"
+  },
+  "dependencies": {
+    "pptxgenjs": "^3.12.0"
+  }
+}

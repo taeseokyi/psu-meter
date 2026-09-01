@@ -1,4 +1,4 @@
-exec(open('/home/claude/salinity/kfont.py').read())
+from kfont import DEEP, TEAL, MID, AMB, INK, GREY, figpath
 import matplotlib.pyplot as plt
 from matplotlib.patches import Wedge, Rectangle, Circle
 import numpy as np, math
@@ -47,5 +47,5 @@ ax.text(-3.05,-1.44,'250 mm 검출팔에서',fontsize=9.5,color=GREY,va='top')
 ax.text(-3.05,-1.58,'1 px  ≈  1 PSU',fontsize=13,color=DEEP,va='top',fontweight='bold')
 
 ax.set_xlim(-3.15,3.55); ax.set_ylim(-1.80,0.86); ax.set_aspect('equal'); ax.axis('off')
-plt.savefig('fig_optics.png',dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.12)
+plt.savefig(figpath('fig_optics.png'),dpi=200,facecolor='white',bbox_inches='tight',pad_inches=0.12)
 print('ok')
