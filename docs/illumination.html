@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="조명계 설계 — 슬릿이 위치를, 입사창이 각도를 정하는 구조와 렌즈 유무가 평면도 요구를 어떻게 갈라놓는지">
+<meta name="color-scheme" content="light dark">
+<title>슬릿과 부채꼴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* 팔레트는 저장소 도해(src/kfont.py)와 동일 — 앞선 "그림자 경계의 정체" 와 같은 신원 */
+:root{
+  --amb:#E8901F; --leak:#39A8C7; --deep:#065A82; --teal:#1C7293;
+  --ground:#E9EEF2; --surface:#FFFFFF; --raised:#F3F7FA;
+  --ink:#111C24; --ink-2:#3C4E5B; --ink-3:#6B8092;
+  --rule:#CBD8E1; --rule-soft:#DEE7ED;
+  --ok:#2E7D5B; --warn:#B4453C;
+  --panel-bg:#0A1016; --panel-ink:#C6D6E1; --panel-ink-2:#7E94A4; --panel-rule:#22333F;
+  --font-body:"IBM Plex Sans KR",-apple-system,"Malgun Gothic","맑은 고딕",sans-serif;
+  --font-mono:"IBM Plex Mono","IBM Plex Sans KR",ui-monospace,monospace;
+  --step--1:.813rem; --step-0:1rem; --step-1:1.19rem;
+  --step-3:1.95rem; --step-5:3.3rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+    --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+    --rule:#25353F; --rule-soft:#1C2A33;
+    --amb:#F2A03C; --leak:#4FBEDC; --ok:#5FBF92; --warn:#E2776B;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+  --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+  --rule:#25353F; --rule-soft:#1C2A33;
+  --amb:#F2A03C; --leak:#4FBEDC; --ok:#5FBF92; --warn:#E2776B;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--font-body); font-size:var(--step-0); line-height:1.72;
+  word-break:keep-all; overflow-wrap:break-word; -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:74rem;margin:0 auto;padding:0 1.5rem}
+.col{max-width:41rem}
+h1,h2,h3{text-wrap:balance;line-height:1.26;margin:0}
+:focus-visible{outline:2px solid var(--amb);outline-offset:3px}
+a{color:var(--deep)}
+:root[data-theme="dark"] a,:root:not([data-theme="light"]) a{color:var(--amb)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) a{color:var(--deep)}}
+
+.eyebrow{font-family:var(--font-mono);font-size:var(--step--1);font-weight:500;
+  letter-spacing:.08em;color:var(--ink-3)}
+
+header{padding:4rem 0 2.5rem;border-bottom:1px solid var(--rule-soft)}
+h1{font-size:var(--step-5);font-weight:700;letter-spacing:-.025em;margin-top:1.4rem}
+h1 em{font-style:normal;color:var(--ink-3);font-weight:300}
+.lede{margin:1.4rem 0 0;font-size:var(--step-1);color:var(--ink-2);max-width:38rem}
+.lede b{color:var(--ink);font-weight:600}
+
+/* 두 축 대비 — 위치는 좁고 방향은 넓다 */
+.axes{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));
+  gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);
+  border-radius:3px;margin:2rem 0 0;overflow:hidden}
+.axes > div{background:var(--surface);padding:1.15rem 1.3rem}
+.axes .k{font-family:var(--font-mono);font-size:var(--step--1);letter-spacing:.06em;
+  color:var(--ink-3);margin-bottom:.35rem}
+.axes .v{font-size:var(--step-1);font-weight:600;margin-bottom:.4rem}
+.axes .n{color:var(--amb)} .axes .w{color:var(--leak)}
+.axes p{margin:0;font-size:var(--step--1);color:var(--ink-2);line-height:1.6}
+
+/* 계기 패널 — 두 테마 모두 어둡다. 차광 하우징 안이므로 */
+.rig{margin:2.5rem 0 0;background:var(--panel-bg);color:var(--panel-ink);
+  border:1px solid var(--panel-rule);border-radius:3px;overflow:hidden}
+.rig-head{display:flex;flex-wrap:wrap;gap:.7rem 1.4rem;align-items:center;
+  padding:.85rem 1.15rem;border-bottom:1px solid var(--panel-rule);
+  font-family:var(--font-mono);font-size:var(--step--1);color:var(--panel-ink-2)}
+.rig-head .dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--amb);
+  box-shadow:0 0 8px var(--amb);flex:none}
+canvas{display:block;width:100%;height:auto}
+.canvas-box{padding:.5rem .5rem 0}
+.controls{display:flex;flex-wrap:wrap;gap:1.3rem 2rem;align-items:flex-end;
+  padding:1.1rem 1.15rem 1.2rem;border-top:1px solid var(--panel-rule)}
+.ctl{flex:1 1 15rem;min-width:13rem}
+.ctl label{display:block;font-family:var(--font-mono);font-size:var(--step--1);
+  color:var(--panel-ink-2);letter-spacing:.05em;margin-bottom:.45rem}
+.ctl .val{color:var(--amb);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--amb);margin:0}
+.seg{display:flex;gap:.4rem;flex-wrap:wrap}
+.seg button{font-family:var(--font-mono);font-size:var(--step--1);font-weight:500;
+  padding:.45rem .8rem;border-radius:2px;cursor:pointer;background:transparent;
+  color:var(--panel-ink);border:1px solid var(--panel-rule);transition:.15s}
+.seg button:hover{border-color:var(--amb);color:var(--amb)}
+.seg button[aria-pressed=true]{background:var(--amb);border-color:var(--amb);color:var(--panel-bg)}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));
+  gap:1px;background:var(--panel-rule);border-top:1px solid var(--panel-rule)}
+.readout > div{background:var(--panel-bg);padding:.8rem 1.15rem}
+.readout dt{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.04em;
+  color:var(--panel-ink-2);margin:0 0 .25rem}
+.readout dd{margin:0;font-family:var(--font-mono);font-size:var(--step-1);font-weight:500;
+  color:var(--amb);font-variant-numeric:tabular-nums}
+.readout dd small{font-size:var(--step--1);color:var(--panel-ink-2);font-weight:400}
+.rig-foot{padding:.7rem 1.15rem;border-top:1px solid var(--panel-rule);
+  font-size:var(--step--1);color:var(--panel-ink-2);line-height:1.6}
+
+section{padding:3rem 0;border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+h2{font-size:var(--step-3);font-weight:600;letter-spacing:-.018em;margin-bottom:.35rem}
+h2+.sub{color:var(--ink-3);margin:0 0 1.6rem}
+h3{font-size:var(--step-1);font-weight:600;margin:1.9rem 0 .5rem}
+p{margin:0 0 1.05rem}
+.col>p:last-child{margin-bottom:0}
+code{font-family:var(--font-mono);font-size:.92em;background:var(--raised);
+  padding:.1em .38em;border-radius:2px}
+.hi{color:var(--amb);font-weight:600}
+
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:var(--step--1);margin:1.4rem 0}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule-soft);
+  white-space:nowrap;vertical-align:top}
+th{font-family:var(--font-mono);font-weight:500;font-size:.74rem;color:var(--ink-3);
+  border-bottom:1px solid var(--rule)}
+td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+.good{color:var(--ok);font-weight:600}
+.bad{color:var(--warn);font-weight:600}
+
+.answer{border-left:3px solid var(--amb);background:var(--raised);
+  padding:1.2rem 1.45rem;margin:0 0 1.8rem;border-radius:0 3px 3px 0}
+.answer p{margin:0}.answer p+p{margin-top:.65rem}
+.fix{border:1px solid var(--warn);border-radius:3px;padding:1.2rem 1.45rem;
+  background:color-mix(in srgb,var(--warn) 6%,var(--surface));margin:1.6rem 0}
+.fix .eyebrow{color:var(--warn);display:block;margin-bottom:.5rem}
+.fix p{margin:0}.fix p+p{margin-top:.65rem}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1.6rem 2.4rem}
+.card{border:1px solid var(--rule-soft);border-radius:3px;padding:1.2rem 1.35rem;
+  background:var(--surface)}
+.card h3{margin:0 0 .5rem;font-size:var(--step-0)}
+.card p{margin:0;font-size:var(--step--1);color:var(--ink-2);line-height:1.62}
+.card p+p{margin-top:.6rem}
+.card .tag{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.05em;
+  display:inline-block;padding:.15rem .45rem;border-radius:2px;margin-bottom:.6rem}
+ol{margin:0 0 1.05rem;padding-left:1.4rem}
+li{margin-bottom:.45rem}
+footer{padding:2.4rem 0 4rem;color:var(--ink-3);font-size:var(--step--1)}
+footer p{margin:0 0 .4rem}
+@media (max-width:640px){:root{--step-5:2.2rem;--step-3:1.5rem}header{padding:2.5rem 0 2rem}section{padding:2.3rem 0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">PSU-METER · 조명계</span>
+  <h1>좁은 틈에서 <em>넓게</em> 나온다</h1>
+  <p class="lede">
+    "슬릿과 방사를 동시에 할 수 없다"는 것은 모순이 아니라 <b>서로 다른 두 축을 같은 말로
+    부른 탓</b>입니다. 슬릿은 빛이 나오는 <b>자리</b>를 좁히고, <b>방향</b>은 건드리지 않습니다.
+  </p>
+
+  <div class="axes">
+    <div>
+      <div class="k">축 1 — 위치</div>
+      <div class="v n">좁다 · 0.3 mm</div>
+      <p>빛이 나오는 자리. 이것이 경계의 날카로움을 정합니다. 슬릿이 담당합니다.</p>
+    </div>
+    <div>
+      <div class="k">축 2 — 방향</div>
+      <div class="v w">넓다 · ±1°</div>
+      <p>그 자리에서 나가는 방향의 범위. 측정 자체가 "어느 각도에서 꺾이나"이므로 넓어야 합니다.</p>
+    </div>
+    <div>
+      <div class="k">문틈</div>
+      <div class="v">좁고 · 넓다</div>
+      <p>문틈은 좁지만 그 빛은 방 안 어디서나 보입니다. 틈 뒤가 확산광이면 틈의 각 점이
+      모든 방향으로 방출합니다. <b>순서가 중요합니다 — 확산 먼저, 좁히기 나중.</b></p>
+    </div>
+  </div>
+
+  <div class="rig">
+    <div class="rig-head">
+      <span class="dot" aria-hidden="true"></span>
+      <span>조명팔 단면 · 반사를 펼쳐 직선으로 그림</span>
+      <span style="color:var(--panel-ink)" id="cfg-name">배치 B — 렌즈 없음</span>
+    </div>
+    <div class="canvas-box" style="padding-bottom:.5rem">
+      <canvas id="lay" width="1800" height="820" role="img"
+        aria-label="조명팔 광학 배치도. 슬릿에서 나온 빛이 입사창을 지나 측정면에 패치를 만들고 검출기로 간다."></canvas>
+    </div>
+    <div class="controls">
+      <div class="ctl" style="flex:0 1 auto">
+        <label>배치</label>
+        <div class="seg" id="cfg">
+          <button data-cfg="B" aria-pressed="true">B · 렌즈 없음</button>
+          <button data-cfg="A">A · 콘덴서</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="arm">조명팔 <span class="val" id="arm-v">250 mm</span></label>
+        <input type="range" id="arm" min="60" max="500" step="5" value="250">
+      </div>
+      <div class="ctl">
+        <label for="fan">부채꼴 <span class="val" id="fan-v">2.0°</span></label>
+        <input type="range" id="fan" min="0.5" max="3" step="0.1" value="2">
+      </div>
+      <div class="ctl">
+        <label for="slit">슬릿 폭 <span class="val" id="slit-v">0.30 mm</span></label>
+        <input type="range" id="slit" min="0.05" max="1" step="0.05" value="0.3">
+      </div>
+    </div>
+    <dl class="readout">
+      <div><dt>입사창 폭</dt><dd id="r-win">—</dd></div>
+      <div><dt>측정면 조명 패치</dt><dd id="r-patch">—</dd></div>
+      <div><dt>경계 폭 (기하)</dt><dd id="r-edge">—</dd></div>
+      <div><dt>경계가 훑는 거리</dt><dd id="r-sweep">—</dd></div>
+    </dl>
+    <div class="rig-foot">
+      반사를 펼쳐 직선으로 그렸습니다. <b>수직 방향만 과장</b>했습니다 — 실제로는 500 mm 길이에
+      패치가 mm 급입니다. 흰 막대는 <b>경계가 생기는 자리</b>입니다. <b>그림은 개념도이고</b> — 정확한 배율은 프리즘
+      곡면의 굴절에서 나오므로 광선을 개별로 그리지 않았습니다 — <b>아래 판독값이 정확</b>합니다.
+      저장소 <code>src/segment_optics.py</code> 를 import 해 광선추적한 결과입니다.
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">구조</span>
+    <h2>조리개가 두 개, 역할이 다릅니다</h2>
+    <p class="sub">이것이 설계의 뼈대입니다</p>
+
+    <div class="answer">
+      <p><b>슬릿</b>은 광원의 <b>크기</b>를 정합니다 → 경계의 날카로움</p>
+      <p><b>입사창</b>은 <b>각도 부채꼴</b>을 정합니다 → 측정 범위</p>
+      <p>하나가 크기를, 다른 하나가 각도를 담당하니 서로 간섭하지 않습니다.
+      <b>이래서 좁음과 넓음이 동시에 성립합니다.</b></p>
+    </div>
+
+    <div class="scroll">
+    <table>
+      <thead><tr><th>부품</th><th>치수</th><th>정하는 것</th><th>틀리면</th></tr></thead>
+      <tbody>
+        <tr><td>LED + 확산판</td><td class="n">—</td><td>방향을 넓게</td>
+            <td>집광형 LED를 쓰면 <span class="bad">경계 자체가 안 생김</span></td></tr>
+        <tr><td>슬릿 (면내)</td><td class="n">0.3 mm</td><td>경계 폭</td>
+            <td>넓으면 경계가 뭉개짐</td></tr>
+        <tr><td>슬릿 (수직)</td><td class="n">~2 mm</td><td>—</td>
+            <td><span class="good">자유</span> — 각도 정보가 없는 방향</td></tr>
+        <tr><td>입사창</td><td class="n">약 9 mm</td><td>부채꼴 2°</td>
+            <td>좁으면 어레이가 덜 채워짐</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>필요한 부채꼴은 최소 <span class="hi">0.547°</span>(두 보정점 사이)이고,
+    어레이 128 px 를 꽉 채우려면 <span class="hi">1.863°</span>입니다. 2°면 넉넉합니다.</p>
+
+    <h3>수직 방향에 대한 두 가지</h3>
+    <p>수직으로 기운 광선(스큐)은 <code>cos i = cosθ·cosφ</code> 때문에 입사각이 약간 커집니다
+    — <code>di = (φ²/2)·cot θc</code>. φ=2°면 1.18 px 인데 회절 번짐에 묻히므로
+    <b>수직 길이는 사실상 자유</b>입니다.</p>
+    <p>다만 <b>길게 해도 신호가 늘지 않습니다.</b> 어레이는 선이고 화소 높이가 55 µm 뿐이라
+    수직으로 퍼뜨린 빛은 위아래로 흘러버립니다(0.2 mm → 27 %, 2 mm → 2.8 % 수광, 곱하면 그대로).
+    회수하려면 <b>수직 방향에만 굴절력이 있는 실린더 렌즈</b>를 쓰면 되고, 면내 방향을 건드리지
+    않으므로 각도→위치 매핑에 영향이 없습니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">갈림길</span>
+    <h2>슬릿을 어디에 두는가</h2>
+    <p class="sub">저장소가 정하지 않은 채 남겨 둔 결정</p>
+
+    <p>측정면에는 슬릿을 놓을 수 없습니다 — 유로 안쪽 젖은 면입니다. 그래서 슬릿은 조명팔에
+    있어야 하고, 두 배치가 가능한데 <b>측정면에서 벌어지는 일이 전혀 다릅니다.</b>
+    위 패널의 배치 버튼으로 비교해 보십시오.</p>
+
+    <div class="two">
+      <div class="card">
+        <span class="tag" style="background:color-mix(in srgb,var(--leak) 18%,transparent);color:var(--leak)">배치 B</span>
+        <h3>렌즈 없음</h3>
+        <p>슬릿 → 250 mm → 프리즘. 부품 셋이면 끝입니다.</p>
+        <p>측정면이 <b>16.5 mm 넓게</b> 비치고, <b>패치 안의 위치마다 입사각이 다릅니다.</b>
+        어레이는 각도가 아니라 <b>측정면을 투영</b>해 봅니다.</p>
+        <p>그래서 <b>그림자 경계가 프리즘 면 위에 실제로 그려진 선</b>이 됩니다 — 눈으로 볼 수 있습니다.</p>
+        <p>염도가 0 → 35 PSU 로 바뀌면 그 선이 측정면 위에서 <b>1.42 mm 이동</b>합니다.</p>
+      </div>
+      <div class="card">
+        <span class="tag" style="background:color-mix(in srgb,var(--amb) 18%,transparent);color:var(--amb)">배치 A</span>
+        <h3>콘덴서 렌즈</h3>
+        <p>확산판을 측정면에 0.3 mm 로 축소 결상합니다.</p>
+        <p>모든 각도가 <b>같은 0.3 mm 한 점</b>을 통과합니다. 측정면에서 위치 정보가 사라지고
+        <b>순수하게 각도만</b> 남습니다.</p>
+        <p>염도가 바뀌어도 <b>경계가 있는 자리는 그대로</b>입니다 — 각도만 바뀝니다.</p>
+        <p>제원: 평볼록 <b>f = 25 mm</b>, 확산판은 렌즈 앞 <b>278 mm</b>, 조리개 <b>1.45 mm</b>,
+        조명팔 총 <b>316 mm</b>. 저장소 계산이 이미 가정하는 쪽입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">계산해 본 결과</span>
+    <h2>평면도 요구가 갈립니다</h2>
+    <p class="sub">그리고 갈리는 방식이 예상과 달랐습니다</p>
+
+    <div class="fix">
+      <span class="eyebrow">앞서 한 설명을 정정합니다</span>
+      <p>이전 답에서 <b>"배치 B 는 패치 10 mm 전체의 표면 기울기 오차가 그대로 경계를
+      밀어낸다"</b>고 했습니다. <b>틀렸습니다.</b></p>
+      <p>광선추적으로 실제 확인한 결과: <b>기울기가 x 에 대해 선형이면(=단순히 기울어진 면)
+      크기가 아무리 커도 2점 보정이 전부 흡수합니다.</b> 1000 µrad/mm — 패치 양단 16,500 µrad
+      차이 — 를 넣어도 염도 오차가 0.014 PSU 밖에 안 늘었습니다.</p>
+      <p>실제로 문제가 되는 것은 <b>짧은 주기의 굴곡</b>이었습니다.</p>
+    </div>
+
+    <p>경계는 0 → 35 PSU 동안 측정면에서 <b>1.42 mm</b>만 움직입니다. 그 거리에 견줘
+    <b>굴곡의 공간 주기</b>가 어떤가가 전부를 정합니다.</p>
+
+    <div class="scroll">
+    <table>
+      <thead><tr><th>굴곡 주기</th><th>기울기 진폭</th><th>PV 사각</th><th>염도 오차</th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="n">0.5 mm</td><td class="n">100 µrad</td><td class="n">16 nm = λ/37</td>
+            <td class="n bad">0.367 PSU</td><td>치명적</td></tr>
+        <tr><td class="n">1.5 mm</td><td class="n">100 µrad</td><td class="n">48 nm = λ/12</td>
+            <td class="n bad">0.149 PSU</td><td>목표 초과</td></tr>
+        <tr><td class="n">5 mm</td><td class="n">100 µrad</td><td class="n">159 nm = λ/3.7</td>
+            <td class="n">0.020 PSU</td><td>허용</td></tr>
+        <tr><td class="n">20 mm</td><td class="n">1000 µrad</td><td class="n">6366 nm</td>
+            <td class="n good">0.007 PSU</td><td>무해 — 기울기처럼 흡수됨</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>정리하면 배치 B 는 <b>0.5 ~ 2 mm 주기 대역에서 λ/20 급 평면도</b>가 필요합니다.
+    긴 파장의 완만한 휘어짐은 공짜지만, 중간 공간주파수 굴곡은 그대로 오차가 됩니다.
+    사출 아크릴이 이 대역에서 어떤지는 <b>아무도 모릅니다.</b></p>
+
+    <p><b>배치 A 는 이 요구가 아예 없습니다.</b> 경계가 늘 같은 0.3 mm 자리에서 생기므로,
+    표면 굴곡이 어떻든 세 액(RO-DI · 표준액 · 시료)에 똑같이 작용해 상수 오프셋이 되고
+    2점 보정이 지웁니다.</p>
+
+    <h3>그럼 날카로움은 어느 쪽이 유리한가</h3>
+    <p>배치 B 의 기하 경계 폭은 <code>슬릿폭 × (검출팔/조명팔)</code> 입니다. 1:1(둘 다 250 mm)이면
+    슬릿 0.3 mm 가 그대로 <b>4.16 px</b>이 되어 배치 A(약 11 px)보다 좋아 보입니다.</p>
+    <p><b>그런데 회절을 넣으면 무승부입니다.</b> 슬릿을 좁힐수록 각도 퍼짐 λ/w 가 커지는 것은
+    양쪽 다 같고, 두 배치 모두 최적점에서 <b>10 ~ 12 px 부근</b>에 수렴합니다. 회절 한계는
+    배치로 피할 수 없습니다.</p>
+    <p>제 광선추적기는 회절을 계산하지 못하므로 이 수치는 추정입니다. 다만 결론의 방향은
+    분명합니다 — <b>날카로움은 무승부이고, 갈리는 것은 평면도 요구뿐입니다.</b></p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">결론</span>
+    <h2>배치 A 를 권합니다</h2>
+
+    <p>같은 날카로움을 얻으면서 <b>표면 품질 요구를 지불하지 않기</b> 때문입니다. 그리고
+    저장소의 계산이 이미 배치 A 를 가정하고 있으므로 — <code>segment_optics.py</code> 는
+    광선을 측정면의 <code>x0 = ±슬릿/2</code> 에서 출발시킵니다 — <b>모델은 맞고, BOM 에
+    콘덴서 렌즈가 빠져 있는 것</b>이 실제 상태입니다.</p>
+
+    <p>추가할 부품은 평볼록 렌즈 하나, 확산판, 슬릿 조각입니다. 조리개가 1.45 mm 라
+    f/17 의 아주 느린 광학계이고 광량이 적지만, TSL1401 의 적분시간이 자유변수이므로
+    보통 문제가 되지 않습니다.</p>
+
+    <h3>그래도 1순위는 배치 B 로 시작하십시오</h3>
+    <p>부품 셋을 검정 파이프에 넣으면 끝이고, <b>센서 없이 눈으로</b> 확인할 수 있습니다.
+    배치 B 에서는 경계가 프리즘 면 위에 실제로 그려지기 때문입니다.</p>
+
+    <ol>
+      <li>LED(돔 갈아냄) + 확산판 + 슬릿 0.3 mm 를 검정 파이프 250 mm 끝에 놓습니다</li>
+      <li>프리즘 평면을 위로 놓고 조명합니다</li>
+      <li><b>RO-DI 한 방울을 올리고 프리즘 면을 직접 봅니다</b> — 밝은 쪽과 어두운 쪽의
+      경계선이 보이면 성공입니다</li>
+      <li><b>표준액으로 바꾸면 그 선이 약 1.4 mm 옮겨 갑니다</b> — 자로 재 보십시오</li>
+      <li>조명 패치 폭을 실측합니다. 16 mm 급이면 계산대로입니다</li>
+      <li>그 다음 TSL1401 을 붙이고, 슬릿을 0.2 / 0.5 / 1 / 3 mm 로 바꿔 경계 프로파일을 저장합니다</li>
+    </ol>
+
+    <p>4번에서 <b>선이 매끄럽게 이동하지 않고 울퉁불퉁 튀면</b> 그것이 바로 위 표의
+    중간주파수 굴곡입니다. 그때 콘덴서 렌즈를 넣으면 됩니다. 그 판단을 위해 굳이 계산을
+    더 할 필요는 없습니다.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="col">
+    <p>광선추적은 저장소 <code>src/segment_optics.py</code> 의 기하·굴절률·굴절 함수를 그대로
+    import 해서 수행했고, 주광선 검증에서 저장소의 <code>detector_pos</code> 와 소수점까지
+    일치했습니다(73.64 px). 활꼴 60×20, 아크릴 n=1.491, 검출팔 250 mm, 590 nm 기준.</p>
+    <p>회절은 광선추적으로 계산할 수 없어 별도 추정입니다. 실물 제작·측정은 아직 없습니다.</p>
+  </div>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+/* 광선추적 결과에 맞춘 관계식 (Python 시뮬레이터에서 얻은 계수) */
+const PIX=0.0635, ARM_D=250.0, SPOT_A=0.30;
+const EDGE_K=0.88;        // 경계폭[mm] = 슬릿 x (ARM_D/arm) x EDGE_K
+const PATCH_M=1.89;       // 패치[mm] = fan[rad] x arm x PATCH_M
+const SWEEP_250=1.424;    // 0~35 PSU 경계 이동거리 @ arm=250
+
+let S={cfg:"B",arm:250,fan:2.0,slit:0.30};
+
+const geo=()=>{
+  const fanRad=S.fan*Math.PI/180;
+  const win=S.arm*Math.tan(fanRad);
+  if(S.cfg==="B"){
+    const patch=fanRad*S.arm*PATCH_M;
+    return {win, patch,
+      edge:S.slit*(ARM_D/S.arm)*EDGE_K,
+      sweep:SWEEP_250*S.arm/ARM_D, spot:null};
+  }
+  return {win, patch:SPOT_A, edge:SPOT_A*1.66, sweep:0, spot:SPOT_A};
+};
+
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function rgba(hex,a){
+  const h=hex.replace("#",""); const n=h.length===3?h.split("").map(x=>x+x).join(""):h;
+  return `rgba(${parseInt(n.slice(0,2),16)},${parseInt(n.slice(2,4),16)},${parseInt(n.slice(4,6),16)},${a})`;
+}
+function ctxOf(id){
+  const cv=document.getElementById(id), r=cv.getBoundingClientRect();
+  if(!cv.dataset.aspect) cv.dataset.aspect=cv.height/cv.width;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(r.width||900,320), h=w*(+cv.dataset.aspect);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); cv.style.height=h+"px";
+  const c=cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+  return {c,w,h};
+}
+
+function draw(){
+  const {c,w,h}=ctxOf("lay");
+  const AMB=css("--amb")||"#E8901F", LEAK=css("--leak")||"#39A8C7";
+  const INK=css("--panel-ink")||"#C6D6E1", INK2=css("--panel-ink-2")||"#7E94A4";
+  const RULE=css("--panel-rule")||"#22333F";
+  const g=geo(), Sc=w/900, mono=css("--font-mono");
+  const total=S.arm+ARM_D;
+  const L=60*Sc, Rr=w-24*Sc, mid=h*0.50;
+  const xOf=mm=>L+(Rr-L)*mm/total;             // 0 = 슬릿, total = 검출기
+  const VS=(h*0.34)/Math.max(g.patch,g.win,3); // 수직 배율 [px/mm]
+  const yOf=mm=>mid-mm*VS;
+  const xFace=xOf(S.arm);
+
+  c.font=`400 ${11.5*Sc}px ${mono}`;
+
+  /* 광축 */
+  c.beginPath(); c.moveTo(L,mid); c.lineTo(Rr,mid);
+  c.strokeStyle=rgba(INK,.16); c.lineWidth=1*Sc; c.setLineDash([4*Sc,4*Sc]);
+  c.stroke(); c.setLineDash([]);
+
+  /* 측정면 (거울면) */
+  c.beginPath(); c.moveTo(xFace,yOf(g.patch/2)-26*Sc); c.lineTo(xFace,yOf(-g.patch/2)+26*Sc);
+  c.strokeStyle=rgba(INK,.9); c.lineWidth=2.6*Sc; c.stroke();
+  for(let i=-6;i<=6;i++){
+    const y=mid+i*9*Sc;
+    c.beginPath(); c.moveTo(xFace,y); c.lineTo(xFace-7*Sc,y+7*Sc);
+    c.strokeStyle=rgba(INK,.28); c.lineWidth=1*Sc; c.stroke();
+  }
+
+  /* 검출기 */
+  c.beginPath(); c.moveTo(Rr,mid-46*Sc); c.lineTo(Rr,mid+46*Sc);
+  c.strokeStyle=rgba(INK,.65); c.lineWidth=3.5*Sc; c.stroke();
+
+  /* ── 전체 광束 — 면으로 채워 빔으로 보이게 ── */
+  const src=S.cfg==="B"?S.slit:3.0;
+  const envF = S.cfg==="B" ? g.patch/2 : SPOT_A/2;      // 측정면에서의 반폭
+  const envE = envF+(envF-src/2)*(ARM_D/S.arm);         // 검출기에서의 반폭
+  c.beginPath();
+  c.moveTo(xOf(0),yOf(src/2)); c.lineTo(xFace,yOf(envF)); c.lineTo(Rr,yOf(envE));
+  c.lineTo(Rr,yOf(-envE));     c.lineTo(xFace,yOf(-envF)); c.lineTo(xOf(0),yOf(-src/2));
+  c.closePath();
+  c.fillStyle=rgba(AMB,.13); c.fill();
+  c.strokeStyle=rgba(AMB,.55); c.lineWidth=1.3*Sc; c.stroke();
+  /* 표본 광선 몇 개 */
+  for(let k=-2;k<=2;k++){
+    const fy=envF*k/2, ey=fy+(fy-0)*(ARM_D/S.arm);
+    c.beginPath(); c.moveTo(xOf(0),yOf(0)); c.lineTo(xFace,yOf(fy)); c.lineTo(Rr,yOf(ey));
+    c.strokeStyle=rgba(AMB,.22); c.lineWidth=1*Sc; c.stroke();
+  }
+
+  /* ── 경계가 생기는 자리 (개념도) ──
+     정확한 배율은 프리즘 곡면 굴절에서 나오므로 광선을 개별로 그리지 않고
+     '경계 띠'와 그것이 훑는 범위만 표시한다. 치수는 판독값이 정확하다. */
+  const bandFace = S.cfg==="B" ? g.edge/1.66 : SPOT_A;   // 측정면 위 경계 띠 폭
+  const b1=yOf(bandFace/2), b2=yOf(-bandFace/2);
+  c.fillStyle=rgba("#FFFFFF",.90);
+  c.fillRect(xFace-2.5*Sc, Math.min(b1,b2)-1*Sc, 5*Sc, Math.abs(b2-b1)+2*Sc);
+
+  if(S.cfg==="B"){
+    /* 경계 띠가 염도에 따라 훑는 범위 */
+    const s1=yOf(g.sweep/2), s2=yOf(-g.sweep/2);
+    c.strokeStyle=rgba(LEAK,.85); c.lineWidth=1.5*Sc; c.setLineDash([4*Sc,3*Sc]);
+    [s1,s2].forEach(y=>{c.beginPath();c.moveTo(xFace-14*Sc,y);c.lineTo(xFace+9*Sc,y);c.stroke();});
+    c.setLineDash([]);
+    c.beginPath(); c.moveTo(xFace-9*Sc,s1); c.lineTo(xFace-9*Sc,s2);
+    c.stroke();
+    c.textAlign="right"; c.fillStyle=rgba(LEAK,.95);
+    c.fillText(`${g.sweep.toFixed(2)} mm`,xFace-16*Sc,mid-3*Sc);
+    c.fillStyle=rgba(INK,.6);
+    c.fillText("0→35 PSU 동안",xFace-16*Sc,mid+11*Sc);
+    c.fillText("경계가 훑는 범위",xFace-16*Sc,mid+25*Sc);
+  } else {
+    c.textAlign="right"; c.fillStyle=rgba(AMB,.95);
+    c.fillText("경계 자리 고정",xFace-14*Sc,mid-62*Sc);
+    c.fillStyle=rgba(INK,.6);
+    c.fillText("염도가 바뀌어도 각도만 바뀐다",xFace-14*Sc,mid-46*Sc);
+  }
+
+  /* 배치 A 의 콘덴서 렌즈 */
+  if(S.cfg==="A"){
+    const xl=xOf(S.arm*0.76);
+    c.beginPath(); c.ellipse(xl,mid,7*Sc,40*Sc,0,0,Math.PI*2);
+    c.strokeStyle=rgba(LEAK,.9); c.lineWidth=2*Sc; c.stroke();
+    c.fillStyle=rgba(LEAK,.10); c.fill();
+    c.fillStyle=rgba(LEAK,.95); c.textAlign="center";
+    c.fillText("콘덴서 f=25",xl,mid+58*Sc);
+    c.fillText("조리개 1.45",xl,mid+72*Sc);
+  }
+
+  /* LED · 확산판 · 슬릿 */
+  const x0=xOf(0);
+  c.fillStyle=rgba(AMB,.16);
+  c.fillRect(x0-46*Sc,mid-30*Sc,26*Sc,60*Sc);
+  c.strokeStyle=rgba(AMB,.75); c.lineWidth=1.4*Sc;
+  c.strokeRect(x0-46*Sc,mid-30*Sc,26*Sc,60*Sc);
+  c.beginPath(); c.moveTo(x0-14*Sc,mid-32*Sc); c.lineTo(x0-14*Sc,mid+32*Sc);
+  c.strokeStyle=rgba(LEAK,.85); c.lineWidth=2.4*Sc; c.setLineDash([3*Sc,3*Sc]);
+  c.stroke(); c.setLineDash([]);
+  /* 슬릿 턱 */
+  const halfSrc=Math.max(src/2*VS,2.5*Sc);
+  c.fillStyle=rgba(INK,.85);
+  c.fillRect(x0-2.5*Sc,mid-halfSrc-38*Sc,5*Sc,38*Sc);
+  c.fillRect(x0-2.5*Sc,mid+halfSrc,5*Sc,38*Sc);
+
+  /* ── 라벨 ── */
+  c.textAlign="center"; c.fillStyle=rgba(AMB,.9);
+  c.fillText("LED",x0-33*Sc,mid+48*Sc);
+  c.fillStyle=rgba(LEAK,.9); c.fillText("확산판",x0-14*Sc,mid+64*Sc);
+  c.fillStyle=INK; c.textAlign="left";
+  c.fillText(S.cfg==="B"?`슬릿 ${S.slit.toFixed(2)} mm`:"확산판 3 mm",
+             x0+8*Sc,mid-halfSrc-44*Sc);
+
+  /* 패치 치수선 */
+  const py=yOf(g.patch/2), py2=yOf(-g.patch/2);
+  c.beginPath(); c.moveTo(xFace+16*Sc,py); c.lineTo(xFace+16*Sc,py2);
+  c.strokeStyle=rgba(LEAK,.9); c.lineWidth=1.6*Sc; c.stroke();
+  [py,py2].forEach(y=>{c.beginPath();c.moveTo(xFace+11*Sc,y);c.lineTo(xFace+21*Sc,y);c.stroke();});
+  c.textAlign="left"; c.fillStyle=rgba(LEAK,.95);
+  c.fillText(`${g.patch<1?g.patch.toFixed(2):g.patch.toFixed(1)} mm`,xFace+26*Sc,mid-4*Sc);
+  c.fillStyle=rgba(INK,.6);
+  c.fillText(S.cfg==="B"?"조명 패치":"집광 스폿",xFace+26*Sc,mid+12*Sc);
+
+  /* 측정면 라벨 */
+  c.textAlign="center"; c.fillStyle=rgba(INK,.85);
+  c.fillText("측정면",xFace,yOf(g.patch/2)-34*Sc);
+
+  /* 경계 폭 표시 (검출기) */
+  const eh=Math.max(g.edge*VS,3*Sc);
+  c.fillStyle=rgba("#FFFFFF",.9);
+  c.fillRect(Rr-4*Sc,mid-eh/2,8*Sc,eh);
+  c.textAlign="right"; c.fillStyle="#FFFFFF"; c.font=`600 ${12*Sc}px ${mono}`;
+  c.fillText(`경계 폭 ${(g.edge/PIX).toFixed(2)} px`,Rr-14*Sc,mid-eh/2-8*Sc);
+  c.font=`400 ${11.5*Sc}px ${mono}`; c.fillStyle=rgba(INK,.6);
+  c.fillText("검출기",Rr-14*Sc,mid+eh/2+20*Sc);
+
+  /* 아래 축 */
+  const ay=h-30*Sc;
+  c.beginPath(); c.moveTo(x0,ay); c.lineTo(Rr,ay);
+  c.strokeStyle=rgba(INK,.3); c.lineWidth=1*Sc; c.stroke();
+  [[x0,"0"],[xFace,`${S.arm}`],[Rr,`${total}`]].forEach(([x,t])=>{
+    c.beginPath(); c.moveTo(x,ay-4*Sc); c.lineTo(x,ay+4*Sc); c.stroke();
+    c.textAlign="center"; c.fillStyle=rgba(INK,.55); c.fillText(t+" mm",x,ay+18*Sc);
+  });
+  c.textAlign="left"; c.fillStyle=rgba(INK,.38);
+  c.fillText(`수직 ×${(VS/((Rr-L)/total)).toFixed(0)} 과장`,x0,ay-12*Sc);
+
+  /* 배치별 한 줄 요약 */
+  c.textAlign="center"; c.font=`600 ${13*Sc}px ${css("--font-body")}`;
+  c.fillStyle=S.cfg==="B"?rgba(LEAK,.95):rgba(AMB,.95);
+  c.fillText(S.cfg==="B"
+    ? "θc 광선들이 측정면의 서로 다른 자리에 떨어진다 → 그 구간의 평면도가 중요"
+    : "θc 광선들이 모두 같은 한 점을 지난다 → 평면도가 상수로 흡수된다",
+    (L+Rr)/2, 24*Sc);
+}
+
+function render(){
+  const g=geo();
+  document.getElementById("arm-v").textContent=`${S.arm} mm`;
+  document.getElementById("fan-v").textContent=`${S.fan.toFixed(1)}°`;
+  document.getElementById("slit-v").textContent=`${S.slit.toFixed(2)} mm`;
+  document.getElementById("cfg-name").textContent=
+    S.cfg==="B"?"배치 B — 렌즈 없음":"배치 A — 콘덴서 렌즈";
+  const set=(id,v)=>document.getElementById(id).innerHTML=v;
+  set("r-win",`${g.win.toFixed(1)}<small> mm</small>`);
+  set("r-patch",`${g.patch<1?g.patch.toFixed(2):g.patch.toFixed(1)}<small> mm</small>`);
+  set("r-edge",`${(g.edge/PIX).toFixed(2)}<small> px</small>`);
+  set("r-sweep",g.sweep>0?`${g.sweep.toFixed(2)}<small> mm</small>`
+                         :`0<small> — 안 움직임</small>`);
+  document.querySelectorAll("#cfg button").forEach(b=>
+    b.setAttribute("aria-pressed",b.dataset.cfg===S.cfg?"true":"false"));
+  document.getElementById("slit").disabled=(S.cfg==="A");
+  document.getElementById("slit").style.opacity=S.cfg==="A"?".35":"1";
+  draw();
+}
+
+document.getElementById("arm").addEventListener("input",e=>{S.arm=+e.target.value;render();});
+document.getElementById("fan").addEventListener("input",e=>{S.fan=+e.target.value;render();});
+document.getElementById("slit").addEventListener("input",e=>{S.slit=+e.target.value;render();});
+document.querySelectorAll("#cfg button").forEach(b=>
+  b.addEventListener("click",()=>{S.cfg=b.dataset.cfg;render();}));
+let rt; window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(render,120);});
+if(window.matchMedia) window.matchMedia("(prefers-color-scheme:dark)").addEventListener("change",render);
+document.fonts&&document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>

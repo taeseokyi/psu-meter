@@ -1,5 +1,8 @@
 # 해수 수조 광학식 염도계 (psu-meter)
 
+> **설명 페이지 (GitHub Pages)** — <https://taeseokyi.github.io/psu-meter/>
+> 원리·조명계 인터랙티브 설명과 **1:1 인쇄 조립 템플릿**을 브라우저에서 볼 수 있습니다.
+
 해수 수조의 염도를 **34 PSU 근처로 유지·모니터링**하기 위한 광학식 염도 측정 장치의 설계 자료입니다.
 전기전도도 방식이 아니라 **임계각 굴절계(critical-angle refractometer)** 방식이며, 하루 2회 무인 자동 측정을 목표로 합니다.
 
@@ -42,6 +45,7 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 | **[`BOM.md`](BOM.md)** | 부품 목록과 조달처. 확인된 링크 / 검색어 / 주의 3단계로 구분 |
 | **[`PRISM_SOURCING.md`](PRISM_SOURCING.md)** | 프리즘 후보 비교와 선정 근거. **주문 전에 이것부터** |
 | **[`ILLUMINATION.md`](ILLUMINATION.md)** | 조명계 설계. 슬릿·입사창의 역할, 두 배치와 평면도 요구. **미결정 항목 있음** |
+| **[`HOBBY_BUILD.md`](HOBBY_BUILD.md)** | 취미 제작 가이드. 3D 프린터 + 다이소 재료로 1순위 벤치 만들기 |
 
 ### 도면 (`figures/`)
 
@@ -64,6 +68,7 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 | `design_calc.py` | 모든 설계 수치의 계산 근거. 외부 라이브러리 불필요 |
 | `src/segment_optics.py` | 활꼴 광선추적 · 경계 폭 예산(회절·슬릿·팔 길이) · 렌즈 배치 비교 · 파장 분산 · AR 코팅 TMM |
 | `src/illum_sim.py` | 조명 배치 B 광선추적. 조명팔·패치·경계 이동·표면 평면도 민감도 |
+| `scad/optical_bench.scad` | 인쇄 부품 (허브·슬릿 클램프·LED 홀더·센서 받침·조리개). 파라메트릭 |
 
 ---
 

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="해수 수조 광학식 염도계 — 임계각 굴절계 방식으로 34 PSU 를 ±0.12 PSU 로 재려는 취미 프로젝트의 설명 페이지 모음.">
+<meta name="color-scheme" content="light dark">
+<title>psu-meter 설명 페이지</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --amb:#E8901F; --leak:#39A8C7; --deep:#065A82;
+  --ground:#E9EEF2; --surface:#FFFFFF; --raised:#F3F7FA;
+  --ink:#111C24; --ink-2:#3C4E5B; --ink-3:#6B8092;
+  --rule:#CBD8E1; --rule-soft:#DEE7ED;
+  --font-body:"IBM Plex Sans KR",-apple-system,"Malgun Gothic","맑은 고딕",sans-serif;
+  --font-mono:"IBM Plex Mono","IBM Plex Sans KR",ui-monospace,monospace;
+  --step--1:.813rem; --step-0:1rem; --step-1:1.19rem; --step-2:1.45rem; --step-5:3.2rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+    --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+    --rule:#25353F; --rule-soft:#1C2A33; --amb:#F2A03C; --leak:#4FBEDC;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+  --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+  --rule:#25353F; --rule-soft:#1C2A33; --amb:#F2A03C; --leak:#4FBEDC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--font-body);
+  font-size:var(--step-0);line-height:1.72;word-break:keep-all;-webkit-font-smoothing:antialiased}
+.wrap{max-width:60rem;margin:0 auto;padding:0 1.5rem}
+.col{max-width:40rem}
+h1,h2,h3{text-wrap:balance;line-height:1.26;margin:0}
+a{color:var(--deep)}
+:root[data-theme="dark"] a,:root:not([data-theme="light"]) a{color:var(--amb)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) a{color:var(--deep)}}
+:focus-visible{outline:2px solid var(--amb);outline-offset:3px}
+.eyebrow{font-family:var(--font-mono);font-size:var(--step--1);font-weight:500;
+  letter-spacing:.08em;color:var(--ink-3)}
+header{padding:4rem 0 2.4rem;border-bottom:1px solid var(--rule-soft)}
+h1{font-size:var(--step-5);font-weight:700;letter-spacing:-.025em;margin-top:1.2rem}
+.lede{margin:1.3rem 0 0;font-size:var(--step-1);color:var(--ink-2);max-width:37rem}
+.lede b{color:var(--ink);font-weight:600}
+.state{display:inline-block;font-family:var(--font-mono);font-size:var(--step--1);
+  padding:.25rem .6rem;border:1px solid var(--amb);color:var(--amb);border-radius:2px;
+  margin-top:1.4rem}
+section{padding:2.8rem 0;border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+h2{font-size:var(--step-2);font-weight:600;margin-bottom:1.2rem}
+.cards{display:grid;gap:1px;background:var(--rule-soft);border:1px solid var(--rule-soft);
+  border-radius:3px;overflow:hidden}
+.cards a{display:block;background:var(--surface);padding:1.35rem 1.5rem;text-decoration:none;
+  color:inherit;transition:background .15s}
+.cards a:hover{background:var(--raised)}
+.cards h3{font-size:var(--step-1);font-weight:600;margin-bottom:.35rem}
+.cards h3 span{color:var(--amb)}
+.cards p{margin:0;font-size:var(--step--1);color:var(--ink-2);line-height:1.62}
+.cards .tag{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.05em;
+  color:var(--ink-3);display:block;margin-bottom:.5rem}
+ul{padding-left:1.3rem;margin:0}
+li{margin-bottom:.4rem;color:var(--ink-2)}
+li b{color:var(--ink)}
+code{font-family:var(--font-mono);font-size:.92em;background:var(--raised);
+  padding:.1em .38em;border-radius:2px}
+footer{padding:2.4rem 0 4rem;color:var(--ink-3);font-size:var(--step--1)}
+footer p{margin:0 0 .4rem}
+@media (max-width:640px){:root{--step-5:2.2rem}header{padding:2.6rem 0 2rem}section{padding:2.2rem 0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">TAESEOKYI / PSU-METER</span>
+  <h1>해수 수조 광학식 염도계</h1>
+  <p class="lede">
+    리프 수조의 염도를 <b>임계각 굴절계</b>로 하루 두 번 무인 측정하려는 설계입니다.
+    상시 침지가 아니라 <b>필요할 때만 펌프로 물을 퍼와</b> 재고, 매 사이클
+    <b>RO-DI(0 PSU)와 표준액(35 PSU) 두 점으로 자가보정</b>합니다.
+    그래서 싸구려 부품으로 ±0.124 PSU 를 노립니다.
+  </p>
+  <span class="state">현재 상태 — 설계 단계. 실물 제작·검증 없음</span>
+</header>
+
+<section>
+  <h2>설명 페이지</h2>
+  <div class="cards">
+    <a href="shadow-edge.html">
+      <span class="tag">원리 · 인터랙티브</span>
+      <h3>그림자 경계의 정체</h3>
+      <p>“그림자”는 물체의 그림자가 아니라 빛이 물로 <b>새어 나간 각도 구간</b>입니다.
+      그리고 리니어 어레이는 밝기가 아니라 <b>경계가 몇 번째 픽셀인지</b>를 잽니다.
+      염도 슬라이더를 움직이면 프레넬 반사율로 실제 계산한 프로파일이 따라 움직입니다.</p>
+    </a>
+    <a href="illumination.html">
+      <span class="tag">조명계 · 인터랙티브</span>
+      <h3>슬릿과 부채꼴</h3>
+      <p>“슬릿과 방사를 동시에 할 수 없다”는 모순이 아닙니다 — 슬릿은 <b>위치</b>를 좁히고
+      <b>방향</b>은 건드리지 않습니다. 조리개 두 개의 역할, 렌즈 유무가 표면 평면도
+      요구를 어떻게 갈라놓는지, 그리고 왜 그것이 아직 미결정인지.</p>
+    </a>
+    <a href="build.html">
+      <span class="tag">제작 · 1:1 인쇄</span>
+      <h3>광학 벤치 조립 템플릿</h3>
+      <p>3D 프린터와 다이소 재료로 만드는 전제의 조립 도면입니다.
+      <b>100 % 배율로 인쇄</b>해 각도 게이지로 오리거나 바닥판에 붙여 쓰십시오.
+      가장 틀리기 쉬운 곳(외부 광선은 측정점을 지나지 않습니다)도 표시했습니다.</p>
+    </a>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>저장소 문서</h2>
+    <ul>
+      <li><a href="https://github.com/taeseokyi/psu-meter">GitHub 저장소</a> — 계산 스크립트와 전체 문서</li>
+      <li><b>HANDOFF.md</b> — 왜 이렇게 결정했고 무엇이 아직 안 풀렸나. <b>정정 이력 포함</b></li>
+      <li><b>HOBBY_BUILD.md</b> — 취미 제작 가이드. 다이소 재료 목록과 조립 절차</li>
+      <li><b>ILLUMINATION.md</b> — 조명계 설계. 미결정 항목 있음</li>
+      <li><b>PRISM_SOURCING.md</b> — 프리즘 후보 비교. 주문 전에 볼 것</li>
+      <li><b>BOM.md</b> — 부품 목록과 조달처</li>
+      <li><code>design_calc.py</code> · <code>src/segment_optics.py</code> ·
+          <code>src/illum_sim.py</code> — 모든 수치의 근거. 외부 라이브러리 불필요</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>왜 시판 제품을 안 쓰는가</h2>
+    <ul>
+      <li>산업용 인라인 굴절계(Vaisala PR-33-AC 등)는 구조가 거의 같지만
+      <b>재현성 ±0.55 PSU</b> 로 목표에 4.5배 부족하고, <b>전부 상시 침지형</b>이라
+      광학면에 생물막이 앉습니다</li>
+      <li>수조 시장의 자동 측정은 <b>전부 전기전도도</b>이고, 광학식은 전부 손으로 보는 휴대용입니다.
+      <b>“필요할 때만 재는 광학식 전자동”은 시판 제품이 없습니다</b></li>
+      <li>자작이 더 정밀할 수 있는 이유는 <b>부피를 지불할 수 있어서</b>입니다 — 상용 프로브는
+      Ø110 mm 안에 들어가야 하지만, 수조 옆 상자는 500 × 150 mm 여도 괜찮습니다</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="col">
+    <p>굴절률은 OSU/Parrish 해수 실험식, 반사율은 프레넬 s·p 편광 평균으로 계산합니다.</p>
+    <p>실물 제작·측정은 아직 하나도 없습니다. 전부 계산상 설계입니다.</p>
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

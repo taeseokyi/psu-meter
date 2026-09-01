@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="임계각 굴절계에서 '그림자'가 실제로 무엇이고 리니어 어레이가 무엇을 재는지 — 프레넬 반사율로 직접 계산하는 인터랙티브 설명">
+<meta name="color-scheme" content="light dark">
+<title>그림자 경계의 정체</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* ── 팔레트는 저장소 도해(src/kfont.py)와 동일 ─────────────────────
+   DEEP #065A82 · TEAL #1C7293 · MID #21295C · AMB #E8901F · GREY #78899A   */
+:root{
+  --amb:#E8901F; --amb-soft:#F2B25E; --deep:#065A82; --teal:#1C7293;
+  --leak:#39A8C7;
+  --ground:#E9EEF2; --surface:#FFFFFF; --raised:#F3F7FA;
+  --ink:#111C24; --ink-2:#3C4E5B; --ink-3:#6B8092;
+  --rule:#CBD8E1; --rule-soft:#DEE7ED;
+  --panel-bg:#0A1016; --panel-grid:#1B2A35; --panel-ink:#C6D6E1;
+  --panel-ink-2:#7E94A4; --panel-rule:#22333F;
+  --font-body:"IBM Plex Sans KR",-apple-system,"Malgun Gothic","맑은 고딕",sans-serif;
+  --font-mono:"IBM Plex Mono","IBM Plex Sans KR",ui-monospace,monospace;
+  --step--1:.813rem; --step-0:1rem; --step-1:1.19rem; --step-2:1.5rem;
+  --step-3:1.95rem; --step-4:2.6rem; --step-5:3.4rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+    --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+    --rule:#25353F; --rule-soft:#1C2A33;
+    --amb:#F2A03C; --amb-soft:#F7C182; --leak:#4FBEDC;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1319; --surface:#121D25; --raised:#17242E;
+  --ink:#DEE9F0; --ink-2:#A8BCC9; --ink-3:#7A8F9E;
+  --rule:#25353F; --rule-soft:#1C2A33;
+  --amb:#F2A03C; --amb-soft:#F7C182; --leak:#4FBEDC;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:var(--font-body); font-weight:400; font-size:var(--step-0);
+  line-height:1.72; -webkit-font-smoothing:antialiased;
+  word-break:keep-all; overflow-wrap:break-word;   /* 한글은 단어 단위로 끊는다 */
+}
+.wrap{max-width:74rem;margin:0 auto;padding:0 1.5rem}
+.col{max-width:41rem}
+h1,h2,h3{text-wrap:balance;line-height:1.25;margin:0}
+a{color:var(--deep)}
+:root[data-theme="dark"] a,:root:not([data-theme="light"]) a{color:var(--amb)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) a{color:var(--deep)}}
+:focus-visible{outline:2px solid var(--amb);outline-offset:3px;border-radius:2px}
+
+.eyebrow{
+  font-family:var(--font-mono);font-size:var(--step--1);font-weight:500;
+  letter-spacing:.08em;color:var(--ink-3);
+}
+
+/* ── hero ─────────────────────────────────────────────────── */
+header{padding:4.5rem 0 2.75rem;border-bottom:1px solid var(--rule-soft)}
+header .kicker{display:flex;gap:.6rem;align-items:baseline;margin-bottom:1.5rem}
+h1{font-size:var(--step-5);font-weight:700;letter-spacing:-.025em}
+h1 .neg{color:var(--ink-3);font-weight:300}
+.lede{margin:1.5rem 0 0;font-size:var(--step-1);color:var(--ink-2);max-width:38rem}
+.lede b{color:var(--ink);font-weight:600}
+
+/* ── 계기 패널: 두 테마에서 모두 어둡다. 실제로 차광 하우징 안이다 ── */
+.rig{
+  margin:2.75rem 0 0;background:var(--panel-bg);color:var(--panel-ink);
+  border:1px solid var(--panel-rule);border-radius:3px;overflow:hidden;
+}
+.rig-head{
+  display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;align-items:center;
+  padding:.85rem 1.15rem;border-bottom:1px solid var(--panel-rule);
+  font-family:var(--font-mono);font-size:var(--step--1);color:var(--panel-ink-2);
+  letter-spacing:.04em;
+}
+.rig-head .up{letter-spacing:.06em}
+.rig-head .dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--amb);
+  box-shadow:0 0 8px var(--amb);flex:none}
+.canvas-box{padding:.5rem .5rem 0}
+canvas{display:block;width:100%;height:auto}
+
+.controls{
+  display:flex;flex-wrap:wrap;gap:1.5rem 2rem;align-items:flex-end;
+  padding:1.1rem 1.15rem 1.25rem;border-top:1px solid var(--panel-rule);
+}
+.ctl{flex:1 1 17rem;min-width:14rem}
+.ctl label{display:block;font-family:var(--font-mono);font-size:var(--step--1);
+  color:var(--panel-ink-2);letter-spacing:.05em;margin-bottom:.5rem}
+input[type=range]{width:100%;accent-color:var(--amb);margin:0}
+.presets{display:flex;flex-wrap:wrap;gap:.4rem}
+.presets button{
+  font-family:var(--font-mono);font-size:var(--step--1);font-weight:500;
+  padding:.4rem .7rem;border-radius:2px;cursor:pointer;
+  background:transparent;color:var(--panel-ink);border:1px solid var(--panel-rule);
+  transition:border-color .15s,color .15s;
+}
+.presets button:hover{border-color:var(--amb);color:var(--amb)}
+.presets button[aria-pressed=true]{border-color:var(--amb);color:var(--panel-bg);background:var(--amb)}
+.toggle{display:flex;align-items:center;gap:.55rem;font-family:var(--font-mono);
+  font-size:var(--step--1);color:var(--panel-ink);cursor:pointer}
+.toggle input{accent-color:var(--amb);width:1rem;height:1rem;margin:0}
+
+.readout{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));
+  gap:1px;background:var(--panel-rule);border-top:1px solid var(--panel-rule);
+}
+.readout div{background:var(--panel-bg);padding:.8rem 1.15rem}
+.readout dt{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.05em;
+  color:var(--panel-ink-2);margin:0 0 .25rem}
+.readout dd{margin:0;font-family:var(--font-mono);font-size:var(--step-1);
+  font-weight:500;color:var(--amb);font-variant-numeric:tabular-nums}
+.readout dd small{font-size:var(--step--1);color:var(--panel-ink-2);font-weight:400}
+.rig-foot{padding:.7rem 1.15rem;border-top:1px solid var(--panel-rule);
+  font-size:var(--step--1);color:var(--panel-ink-2);line-height:1.6}
+
+/* ── 본문 섹션 ────────────────────────────────────────────── */
+section{padding:3.25rem 0;border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+h2{font-size:var(--step-3);font-weight:600;letter-spacing:-.018em;margin-bottom:.4rem}
+h2 + .sub{color:var(--ink-3);margin:0 0 1.75rem;font-size:var(--step-0)}
+h3{font-size:var(--step-1);font-weight:600;margin:2rem 0 .5rem}
+p{margin:0 0 1.1rem}
+.col > p:last-child{margin-bottom:0}
+strong{font-weight:600}
+code,.num{font-family:var(--font-mono);font-size:.92em;font-variant-numeric:tabular-nums}
+code{background:var(--raised);padding:.1em .38em;border-radius:2px;color:var(--ink)}
+
+.answer{
+  border-left:3px solid var(--amb);background:var(--raised);
+  padding:1.25rem 1.5rem;margin:0 0 2rem;border-radius:0 3px 3px 0;
+}
+.answer p{margin:0}
+.answer p + p{margin-top:.7rem}
+
+table{width:100%;border-collapse:collapse;font-size:var(--step--1);margin:1.5rem 0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule-soft);
+  vertical-align:top;white-space:nowrap}
+th{font-family:var(--font-mono);font-weight:500;letter-spacing:.04em;
+  color:var(--ink-3);font-size:.74rem;
+  border-bottom:1px solid var(--rule)}
+td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+tbody tr:last-child td{border-bottom:0}
+td em{font-style:normal;color:var(--amb);font-weight:600}
+.hi{color:var(--amb);font-weight:600}
+
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:1.75rem 2.5rem}
+.card{border:1px solid var(--rule-soft);border-radius:3px;padding:1.25rem 1.4rem;background:var(--surface)}
+.card .eyebrow{margin-bottom:.5rem;display:block}
+.card p{margin:0;font-size:var(--step--1);color:var(--ink-2);line-height:1.65}
+.card p + p{margin-top:.7rem}
+
+.flag{
+  border:1px solid var(--amb);border-radius:3px;padding:1.25rem 1.5rem;
+  background:color-mix(in srgb,var(--amb) 7%,var(--surface));
+}
+.flag .eyebrow{color:var(--amb);display:block;margin-bottom:.5rem}
+.flag p{margin:0}.flag p + p{margin-top:.7rem}
+
+footer{padding:2.5rem 0 4rem;color:var(--ink-3);font-size:var(--step--1)}
+footer p{margin:0 0 .4rem}
+
+@media (max-width:640px){
+  :root{--step-5:2.3rem;--step-4:1.9rem;--step-3:1.5rem}
+  header{padding:2.75rem 0 2rem}
+  section{padding:2.5rem 0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">
+    <span class="eyebrow">PSU-METER · 임계각 굴절계</span>
+  </div>
+  <h1>그림자는 <span class="neg">물체의 그림자가</span> 아닙니다</h1>
+  <p class="lede">
+    빛이 물 쪽으로 <b>새어 나가 버린 각도 구간</b>입니다. 그리고 리니어 어레이는 밝기를 재는 게
+    아니라, 그 구간의 <b>경계가 몇 번째 픽셀인지</b>를 잽니다. 아래를 직접 움직여 보십시오.
+  </p>
+
+  <!-- ════ 계기 패널 ════ -->
+  <div class="rig">
+    <div class="rig-head">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="up">차광 하우징 내부 · 단면</span>
+      <span style="color:var(--panel-ink)">아크릴 반원통 n = 1.491 · LED 590 nm · 검출팔 250 mm</span>
+    </div>
+
+    <div class="canvas-box">
+      <canvas id="rays" width="1800" height="860" role="img"
+        aria-label="반원통 프리즘 단면 광선도. 임계각보다 큰 각도의 광선은 전반사되어 검출기로 향하고, 작은 각도의 광선은 물로 빠져나간다."></canvas>
+    </div>
+    <div class="canvas-box" style="padding-bottom:.5rem">
+      <canvas id="prof" width="1800" height="520" role="img"
+        aria-label="128픽셀 리니어 어레이가 출력하는 밝기 프로파일. 임계각 지점에서 평탄한 최대값이 꺾여 내려간다."></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="sal">측정면 위에 올린 것</label>
+        <input type="range" id="sal" min="0" max="40" step="0.1" value="34"
+               aria-describedby="salout">
+      </div>
+      <div class="ctl" style="flex:0 1 auto">
+        <label>바로 가기</label>
+        <div class="presets" id="presets">
+          <button data-mode="air">공기</button>
+          <button data-sal="0">RO-DI · 0</button>
+          <button data-sal="34" aria-pressed="true">수조 · 34</button>
+          <button data-sal="35">표준액 · 35</button>
+        </div>
+      </div>
+      <div class="ctl" style="flex:0 1 auto">
+        <label>표시</label>
+        <label class="toggle"><input type="checkbox" id="blur" checked>
+          회절·기하 번짐 포함 (실제)</label>
+      </div>
+    </div>
+
+    <dl class="readout" id="salout">
+      <div><dt>시료 굴절률 n</dt><dd id="r-n">—</dd></div>
+      <div><dt>임계각 θc</dt><dd id="r-tc">—</dd></div>
+      <div><dt>경계 픽셀</dt><dd id="r-px">—</dd></div>
+      <div><dt>RO-DI 대비</dt><dd id="r-dp">—</dd></div>
+    </dl>
+
+    <div class="rig-foot">
+      광선도는 <b>부채꼴이 벌어진 각도만 과장</b>했습니다 — 실제로 128픽셀이 덮는 각도는
+      1.86°뿐이라 그대로 그리면 광선이 전부 겹쳐 보이지 않습니다. 배율은 그림 왼쪽 아래에
+      적혀 있습니다. 아래 프로파일은 <b>과장 없는 실제 계산</b>입니다
+      (프레넬 반사율, s·p 편광 평균).
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">질문 1</span>
+    <h2>그림자의 정체</h2>
+    <p class="sub">무엇이 어두워지는가</p>
+
+    <div class="answer">
+      <p><strong>빛은 물을 통과하지 않습니다.</strong> 아래(유리) 쪽에서 올라와 물과 닿는
+      면에서 <strong>되튀어 다시 아래로</strong> 내려갑니다. 물은 광로 위에 있지 않고,
+      그냥 면 위에 얹혀 있을 뿐입니다.</p>
+      <p>한 점에 <strong>여러 각도의 빛이 동시에</strong> 도달합니다. 각도마다 운명이 갈립니다.</p>
+    </div>
+
+    <div class="two" style="margin-bottom:1.75rem">
+      <div class="card">
+        <span class="eyebrow" style="color:var(--amb)">θ &gt; θc</span>
+        <p><strong>전반사.</strong> 100 % 가 되돌아옵니다. 한 줌도 물로 새지 않습니다.
+        검출기에서 가장 밝은 값, 그리고 각도가 더 커져도 더 밝아지지 않는 <strong>평탄한 최대값</strong>입니다.</p>
+      </div>
+      <div class="card">
+        <span class="eyebrow" style="color:var(--leak)">θ &lt; θc</span>
+        <p><strong>일부가 물로 빠져나갑니다.</strong> 되돌아오는 양이 줄어듭니다.
+        빠져나간 빛은 물속으로 사라져 검출기에 오지 않습니다. 그래서 이쪽이 어둡습니다.</p>
+      </div>
+    </div>
+
+    <p>즉 어두운 쪽은 무언가에 <strong>가려진</strong> 것이 아니라 <strong>빠져나가 버린</strong>
+    것입니다. 굳이 그림자라 부른다면 <span class="hi">누출 그림자</span>입니다. 그리고 그 경계 각도가 바로
+    임계각 θc = <code>asin(n물 / n프리즘)</code> 입니다.</p>
+
+    <p><strong>물이 짜지면 n이 커지고, θc가 커지고, 경계가 옮겨 갑니다.</strong>
+    이것이 측정의 전부입니다. 34 PSU 부근에서 <strong>1 PSU가 약 1픽셀</strong>입니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">질문 2</span>
+    <h2>어레이는 무엇을 재는가</h2>
+    <p class="sub">밝기가 아니라 위치</p>
+
+    <p>TSL1401은 <strong>128개가 한 줄로 늘어선 광량계</strong>입니다. 사진을 찍는 것도,
+    그림자의 모양을 보는 것도 아닙니다. 128개의 숫자를 뱉습니다.</p>
+
+    <p>여기서 결정적인 부분: <strong>그 128개 숫자의 크기는 버립니다.</strong>
+    쓰는 것은 <strong>꺾이는 지점이 몇 번째 픽셀인가</strong> 하나뿐입니다.
+    밝기는 위치를 찾기 위한 수단이고, 답은 위치입니다.</p>
+
+    <p>검출기를 이렇게 놓았기 때문에 그것이 가능합니다 —
+    <strong>어레이 위의 위치 = 되돌아온 빛의 각도.</strong>
+    측정점에서 250 mm 떨어뜨리면 각도 차이가 거리 차이로 벌어집니다.
+    각도 영역의 밝기 단절이 위치 영역의 밝기 단절로 옮겨 적히는 셈입니다.</p>
+
+    <h3>그래서 공짜로 얻는 것들</h3>
+    <div class="scroll">
+    <table>
+      <thead><tr><th>흔들리는 것</th><th>절대 밝기를 쓴다면</th><th>위치만 쓰면</th></tr></thead>
+      <tbody>
+        <tr><td>LED 광량 노화</td><td>그대로 오차</td><td><em>무관</em> — 전체가 같이 어두워질 뿐 꺾이는 자리는 그대로</td></tr>
+        <tr><td>검출기 게인·노출</td><td>그대로 오차</td><td><em>무관</em> — 같은 이유</td></tr>
+        <tr><td>측정면의 얇은 오염</td><td>그대로 오차</td><td>상당 부분 상쇄 (완전하지는 않음)</td></tr>
+        <tr><td>시료의 색·탁도</td><td>그대로 오차</td><td><em>거의 무관</em> — 빛이 물을 통과하지 않음</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>패널의 <strong>공기</strong> 버튼을 눌러 보십시오. 공기는 θc가 42°라 어레이가 보는 창
+    (62.9°~64.7°)에서 한참 벗어나 있어 <strong>모든 각도가 전반사</strong>됩니다.
+    꺾임이 없는 평탄한 최대값 — 이것이 풀스케일 기준점이고, 광량 드리프트를 재는 데 씁니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">질문 3</span>
+    <h2>왜 두 번 더 재는가</h2>
+    <p class="sub">픽셀을 PSU로 바꾸는 환율</p>
+
+    <p>어레이는 "66.5번 픽셀"이라고만 말합니다. 그것이 몇 PSU인지는 아무도 모릅니다.
+    프리즘 굴절률, 팔 길이, 조립 각도, 온도에 따라 환율이 달라지기 때문입니다.</p>
+
+    <p>그래서 <strong>매 측정마다 답을 아는 두 액을 먼저 재서 환율을 실측합니다.</strong>
+    RO-DI(0 PSU)와 표준액(35.0 PSU)입니다. 프로파일의 두 회색 표시가 그 자리입니다.
+    직선 하나가 정해지고, 시료의 픽셀을 거기에 얹으면 PSU가 나옵니다.</p>
+
+    <p>이것이 저장소 문서가 <strong>"프리즘을 아무거나 써도 된다"</strong>고 하는 이유입니다.
+    환율을 미리 알 필요가 없습니다. 매번 재니까요. 슬라이더를 움직이면 두 표시는 가만히 있고
+    경계만 그 사이를 지나가는 것을 볼 수 있습니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">질문 4</span>
+    <h2>경계는 왜 칼처럼 날카롭지 않은가</h2>
+    <p class="sub">이 페이지를 만들며 계산해 보고 알게 된 것</p>
+
+    <p><strong>"어두운 쪽"은 사실 어둡지 않습니다.</strong> 프레넬 반사율은 θc에서 0이 되는 게
+    아니라 <strong>천천히 흘러내립니다.</strong> 34 PSU · 아크릴에서 실제 값:</p>
+
+    <div class="scroll">
+    <table>
+      <thead><tr><th>θc 에서 아래로</th><th>= 픽셀</th><th>반사율</th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="n">0°</td><td class="n">0</td><td class="n"><em>100 %</em></td><td>전반사 — 여기서 꺾인다</td></tr>
+        <tr><td class="n">0.02°</td><td class="n">1.4</td><td class="n">84.5 %</td><td>1픽셀 만에 15 % 가 사라진다</td></tr>
+        <tr><td class="n">0.10°</td><td class="n">6.9</td><td class="n">68.6 %</td><td></td></tr>
+        <tr><td class="n">0.40°</td><td class="n">27.5</td><td class="n">47.1 %</td><td></td></tr>
+        <tr><td class="n">1.50°</td><td class="n">103</td><td class="n">23.4 %</td><td>어레이 반대쪽 끝까지 가도 이 정도</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <p>10 % 까지 떨어지려면 <strong>260픽셀</strong>이 필요합니다 — 어레이보다 두 배 넓습니다.
+    그러니까 프로파일은 <strong>밝고 어두운 두 영역</strong>이 아니라,
+    <strong>평탄한 고원이 한 지점에서 꺾여 내려가는 언덕</strong>입니다.</p>
+
+    <p>좋은 소식은 <strong>꺾이는 순간만은 매우 급하다</strong>는 것입니다. θc에서 반사율의
+    기울기가 무한대(√δ 꼴)라 첫 1~2픽셀에서 15 %가 빠집니다. 찾아야 할 것은 이
+    <strong>모서리</strong>입니다.</p>
+
+    <div class="flag">
+      <span class="eyebrow">2순위 아두이노 스케치에 반영할 것</span>
+      <p><strong>"최대값의 50 %를 넘는 지점"으로 에지를 찾으면 안 됩니다.</strong>
+      50 %는 θc에서 27픽셀이나 떨어진 <strong>완만한 경사면</strong> 위에 있습니다.
+      거기서는 조명 불균일이나 미광이 조금만 변해도 그 지점이 크게 움직이고,
+      그것이 그대로 염도 오차로 읽힙니다.</p>
+      <p>대신 <strong>고원에서 이탈하는 모서리</strong>를 찾으십시오 — 2차 미분의 최대,
+      또는 알려진 모양(평탄 + √δ 경사, 번짐 커널로 컨볼루션)을 피팅하는 방식입니다.
+      모양이 계산으로 알려져 있다는 점이 유리하게 작용합니다.</p>
+      <p style="color:var(--ink-3);font-size:var(--step--1)">
+      이 항목은 저장소의 경계 폭 예산(기하 5.2 + 회절 11.6 + 스펙트럼 0.4 px)에
+      들어 있지 않습니다. 프레넬 경사는 <span class="hi">고정된 모양</span>이어서 2점 보정이 상쇄하므로
+      계통 오차는 아니지만, 에지 검출 알고리즘의 선택을 좌우합니다.</p>
+    </div>
+
+    <p style="margin-top:1.75rem">패널의 <strong>회절·기하 번짐 포함</strong>을 꺼 보면
+    이상적인 날카로운 모서리가 나오고, 켜면 실제로 보게 될 <strong>둥글려진 모서리</strong>가
+    나옵니다. 둥글려진 폭이 약 12.7픽셀이고, 그 안에서 모서리 위치를 0.05픽셀까지
+    찾아내는 것이 이 장치의 실제 과제입니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <span class="eyebrow">따라오는 결과</span>
+    <h2>왜 표면 0.5 µm만 보는가</h2>
+
+    <p>전반사라 해도 빛이 경계면에서 딱 끊기는 게 아니라, 물속으로 <strong>파장보다 얇게
+    스며들었다가</strong> 되돌아 나옵니다. 이 스며드는 깊이가 θc 위 1°에서
+    <strong>약 0.5 µm</strong>입니다.</p>
+
+    <p>그래서 이 방식은 <strong>측정면에 붙은 0.5 µm 두께만 봅니다.</strong>
+    좋은 점은 시료의 색이나 탁도, 수위, 셀 두께가 전부 무관하다는 것입니다.
+    나쁜 점은 <strong>눈에 보이지도 않는 생물막 한 겹이 그대로 오차</strong>가 된다는 것입니다.</p>
+
+    <p>저장소가 광학면을 수조에 담그지 않고 펌프로 물을 퍼와 재는 이유,
+    유휴 시 셀을 표준액으로 채워 두는 이유, UVC LED를 다는 이유가 전부 이 한 줄에서 나옵니다.
+    이 방식의 최대 강점과 최대 약점이 같은 물리에서 나옵니다.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="col">
+    <p>모든 수치는 저장소의 <code>design_calc.py</code> · <code>src/segment_optics.py</code> 와
+    같은 식으로 이 페이지에서 직접 계산합니다. 굴절률은 OSU/Parrish 해수 실험식,
+    반사율은 프레넬 s·p 편광 평균입니다.</p>
+    <p>프리즘은 이상적 반원통(곡면에서 굴절 없음)으로 계산했습니다. 실제 조달품인
+    활꼴 60×20은 곡면이 약한 실린더 렌즈로 작동해 스팬이 약 10 % 넓어집니다.</p>
+    <p>실물 제작·측정은 아직 없습니다. 전부 계산상 설계입니다.</p>
+  </div>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+/* ── 물리 ─────────────────────────────────────────────────────
+   저장소 design_calc.py / segment_optics.py 와 동일한 식.          */
+const NP=1.491, LAM=590, TC_=26, PIX=0.0635, ARM=250;
+const SWc=[-1.50156e-6,1.07085e-7,-4.27594e-5,-1.60476e-4,1.39807];
+const FWc=[-1.97812e-6,1.03223e-7,-8.58125e-6,-1.54834e-4,1.38919];
+const f5=c=>c[0]*TC_*TC_+c[1]*LAM*LAM+c[2]*TC_+c[3]*LAM+c[4];
+const N0=f5(FWc), N35=f5(SWc);
+const nWater=S=>N0+(N35-N0)*S/35;
+const thetaC=ns=>ns/NP>=1?null:Math.asin(ns/NP);
+
+/* 프레넬 반사율 (프리즘 내부 입사각 th). s·p 평균. */
+function refl(th,ns){
+  const si=NP*Math.sin(th)/ns;
+  if(si>=1) return 1;
+  const ci=Math.cos(th), ct=Math.sqrt(1-si*si);
+  const a=NP*ci, b=ns*ct, c=NP*ct, d=ns*ci;
+  return (Math.pow((a-b)/(a+b),2)+Math.pow((c-d)/(c+d),2))/2;
+}
+
+/* 어레이 매핑: 0 PSU 경계를 30번 픽셀에 둔다. 위치 = 각도. */
+const P0=30, TH_REF=thetaC(nWater(0));
+const pxToTheta=p=>TH_REF+(p-P0)*PIX/ARM;
+const thetaToPx=t=>P0+(t-TH_REF)*ARM/PIX;
+const NPX=128;
+const TH_CENTER=thetaC(nWater(34));      // 하드웨어가 고정한 부채꼴 중심
+const FAN=1.6*Math.PI/180;               // 부채꼴 반각 (물리)
+const GAIN=7;                            // 그림에서만 각도 과장
+
+/* 번짐 커널: 경계 폭 12.74 px 를 FWHM 으로 본 가우시안 */
+const SIG=12.74/2.355;
+const KERN=(()=>{const k=[],r=Math.ceil(SIG*3);let s=0;
+  for(let i=-r;i<=r;i++){const v=Math.exp(-i*i/(2*SIG*SIG));k.push(v);s+=v;}
+  return{k:k.map(v=>v/s),r};})();
+
+/* 고정 잡음 — 실제 센서처럼 보이되 슬라이더마다 깜빡이지 않게 시드 고정 */
+const NOISE=(()=>{let s=20260901,a=[];
+  for(let i=0;i<NPX;i++){s=(s*1103515245+12345)&0x7fffffff;a.push((s/0x7fffffff-.5)*.022);}
+  return a;})();
+
+let state={mode:"liquid",sal:34};
+
+function profile(){
+  const ns=state.mode==="air"?1.0:nWater(state.sal);
+  const raw=[];
+  for(let p=0;p<NPX;p++) raw.push(refl(pxToTheta(p),ns));
+  let out=raw;
+  if(document.getElementById("blur").checked){
+    out=[];
+    for(let p=0;p<NPX;p++){
+      let v=0,w=0;
+      for(let i=-KERN.r;i<=KERN.r;i++){
+        const q=p+i; if(q<0||q>=NPX) continue;
+        v+=raw[q]*KERN.k[i+KERN.r]; w+=KERN.k[i+KERN.r];
+      }
+      out.push(v/w+NOISE[p]);
+    }
+  }
+  return {ns,raw,out,tc:thetaC(ns)};
+}
+
+/* ── 캔버스 헬퍼 ──────────────────────────────────────────── */
+function ctxOf(id){
+  const cv=document.getElementById(id), r=cv.getBoundingClientRect();
+  if(!cv.dataset.aspect) cv.dataset.aspect=cv.height/cv.width;
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const w=Math.max(r.width||900,320), h=w*(+cv.dataset.aspect);
+  cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+  cv.style.height=h+"px";
+  const c=cv.getContext("2d"); c.setTransform(dpr,0,0,dpr,0,0);
+  c.clearRect(0,0,w,h);
+  return {c,w,h};
+}
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function withAlpha(hex,a){
+  const h=hex.replace("#","");
+  const n=h.length===3?h.split("").map(x=>x+x).join(""):h;
+  const r=parseInt(n.slice(0,2),16),g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* ── 광선도 ───────────────────────────────────────────────── */
+function drawRays(st){
+  const {c,w,h}=ctxOf("rays");
+  const AMB=css("--amb")||"#E8901F", LEAK=css("--leak")||"#39A8C7";
+  const INK=css("--panel-ink")||"#C6D6E1", INK2=css("--panel-ink-2")||"#7E94A4";
+  const S=w/900;                                   // 900 기준 스케일
+  const mono=css("--font-mono"), body=css("--font-body");
+  const mx=330*S, my=118*S, R=92*S, D=302*S;
+  const cx=Math.sin(TH_CENTER), cy=Math.cos(TH_CENTER);   // 중심 방향 (아래·오른쪽)
+  const drawnMax=FAN*GAIN;                                // 그림상 부채꼴 반각
+  const HALF=D*Math.tan(drawnMax)+10*S;
+
+  /* ── 물 층 ── */
+  const wg=c.createLinearGradient(0,0,0,my);
+  wg.addColorStop(0,withAlpha(LEAK,.22)); wg.addColorStop(1,withAlpha(LEAK,.07));
+  c.fillStyle=wg; c.fillRect(0,0,w,my);
+  c.font=`500 ${12.5*S}px ${mono}`; c.textAlign="left";
+  c.fillStyle=withAlpha(LEAK,.95);
+  c.fillText(st.mode==="air"?"공기      n = 1.0000"
+    :`시료  ${st.sal.toFixed(1)} PSU      n = ${st.ns.toFixed(5)}`, 16*S, 24*S);
+  c.fillStyle=withAlpha(INK,.45); c.font=`400 ${11*S}px ${mono}`;
+  c.fillText(st.mode==="air"?"빛이 새어 나갈 곳이 없다":"빠져나간 빛은 여기로 사라진다",16*S,42*S);
+
+  /* ── 프리즘 ── */
+  c.beginPath(); c.arc(mx,my,R,0,Math.PI); c.closePath();
+  c.fillStyle=withAlpha("#9FC4D8",.10); c.fill();
+  c.strokeStyle=withAlpha("#9FC4D8",.40); c.lineWidth=1.4*S; c.stroke();
+
+  /* ── 광선 ── */
+  const NR=25;
+  for(let i=0;i<NR;i++){
+    const dOff=-drawnMax+2*drawnMax*i/(NR-1);      // 그림상 각도 오프셋
+    const th=TH_CENTER+dOff/GAIN;                  // 물리 각도
+    const Rf=refl(th,st.ns);
+    const a=TH_CENTER+dOff, sx=Math.sin(a), sy=Math.cos(a);
+
+    /* 입사: 곡면 바깥 → M. 곡면에 법선 입사이므로 굴절 없음 */
+    c.beginPath();
+    c.moveTo(mx-sx*(R+52*S),my+sy*(R+52*S)); c.lineTo(mx,my);
+    c.strokeStyle=withAlpha(AMB,.50); c.lineWidth=1.1*S; c.stroke();
+
+    /* 반사: M → 검출기 */
+    c.beginPath(); c.moveTo(mx,my); c.lineTo(mx+sx*D,my+sy*D);
+    c.strokeStyle=withAlpha(AMB,.05+.93*Rf*Rf); c.lineWidth=(.7+1.4*Rf)*S; c.stroke();
+
+    /* 투과: M → 물속으로 사라진다 */
+    if(Rf<.999){
+      const si=NP*Math.sin(th)/st.ns, ct=Math.sqrt(Math.max(0,1-si*si));
+      const L=(my-6*S)/Math.max(ct,.12), gx=mx+si*L, gy=my-ct*L;
+      const g=c.createLinearGradient(mx,my,gx,gy);
+      g.addColorStop(0,withAlpha(LEAK,.35+.60*(1-Rf)));
+      g.addColorStop(.75,withAlpha(LEAK,.10+.35*(1-Rf)));
+      g.addColorStop(1,withAlpha(LEAK,0));
+      c.beginPath(); c.moveTo(mx,my); c.lineTo(gx,gy);
+      c.strokeStyle=g; c.lineWidth=(1.3+1.5*(1-Rf))*S; c.stroke();
+    }
+  }
+
+  /* ── 프리즘 윤곽·측정면을 광선 위에 다시 ── */
+  c.beginPath(); c.arc(mx,my,R,0,Math.PI); c.closePath();
+  c.strokeStyle=withAlpha("#BBD8E8",.60); c.lineWidth=1.6*S; c.stroke();
+  c.beginPath(); c.moveTo(mx-R,my); c.lineTo(mx+R,my);
+  c.strokeStyle=withAlpha(INK,.9); c.lineWidth=2.8*S; c.stroke();
+
+  /* ── 임계각 경계선 ── */
+  if(st.tc!==null){
+    const dOff=(st.tc-TH_CENTER)*GAIN;
+    if(Math.abs(dOff)<=drawnMax){
+      const a=TH_CENTER+dOff, sx=Math.sin(a), sy=Math.cos(a);
+      c.beginPath(); c.moveTo(mx,my); c.lineTo(mx+sx*(D+40*S),my+sy*(D+40*S));
+      c.strokeStyle="#FFFFFF"; c.lineWidth=1.7*S; c.setLineDash([6*S,4*S]);
+      c.stroke(); c.setLineDash([]);
+      c.fillStyle="#FFFFFF"; c.font=`600 ${12.5*S}px ${mono}`; c.textAlign="left";
+      c.fillText(`θc = ${(st.tc*180/Math.PI).toFixed(2)}°`,
+                 mx+sx*(D+48*S), my+sy*(D+48*S)+4*S);
+    }
+  }
+
+  /* ── 검출기: 그림의 과장 각도와 일관되게 음영 ── */
+  const qx=mx+cx*D, qy=my+cy*D, ux=cy, uy=-cx;   // +u = 각도 증가 방향
+  const STEP=2*S;
+  for(let u=-HALF;u<HALF;u+=STEP){
+    const th=TH_CENTER+Math.atan(u/D)/GAIN;
+    const v=refl(th,st.ns);
+    c.beginPath();
+    c.moveTo(qx+ux*u-cx*10*S, qy+uy*u-cy*10*S);
+    c.lineTo(qx+ux*u+cx*10*S, qy+uy*u+cy*10*S);
+    c.strokeStyle=withAlpha(AMB,.05+.95*v); c.lineWidth=STEP+.7*S; c.stroke();
+  }
+  c.beginPath();
+  [[HALF,-11],[-HALF,-11],[-HALF,11],[HALF,11]].forEach(([u,t],i)=>{
+    const X=qx+ux*u+cx*t*S, Y=qy+uy*u+cy*t*S;
+    i?c.lineTo(X,Y):c.moveTo(X,Y);
+  });
+  c.closePath(); c.strokeStyle=withAlpha(INK,.55); c.lineWidth=1.3*S; c.stroke();
+
+  /* ── 라벨 ── */
+  c.font=`500 ${12*S}px ${mono}`;
+  c.fillStyle=withAlpha(AMB,.85); c.textAlign="right";
+  c.fillText("LED 590 nm", mx-cx*(R+58*S)-6*S, my+cy*(R+58*S)+16*S);
+  c.fillText("+ 슬릿",      mx-cx*(R+58*S)-6*S, my+cy*(R+58*S)+32*S);
+
+  c.fillStyle=INK; c.textAlign="left";
+  c.fillText("TSL1401  128 px", qx+ux*(-HALF)+cx*16*S, qy+uy*(-HALF)+cy*16*S+4*S);
+
+  c.fillStyle=withAlpha(INK,.62); c.font=`400 ${11.5*S}px ${mono}`;
+  c.textAlign="center";
+  c.fillText("아크릴 반원통  n = 1.491", mx, my+R+20*S);
+
+  /* ── 범례 ── */
+  const lx=16*S, ly=h-78*S;
+  c.font=`400 ${11.5*S}px ${mono}`; c.textAlign="left";
+  [[AMB,.95,2.4,"θ > θc  전반사 100 % → 검출기로"],
+   [LEAK,.85,2.4,"θ < θc  일부가 물로 빠져나감 → 어두워진다"],
+   [INK,.9,2.8,"측정면 — 프리즘과 시료의 경계. 광로는 여기서 되튄다"]]
+  .forEach(([col,al,lw,txt],i)=>{
+    const y=ly+i*18*S;
+    c.beginPath(); c.moveTo(lx,y); c.lineTo(lx+26*S,y);
+    c.strokeStyle=withAlpha(col,al); c.lineWidth=lw*S; c.stroke();
+    c.fillStyle=withAlpha(INK,.72); c.fillText(txt,lx+34*S,y+4*S);
+  });
+
+  /* 두 팔 사이각 */
+  c.fillStyle=withAlpha(INK,.38); c.font=`400 ${11*S}px ${mono}`;
+  c.fillText(`두 팔 사이각 ${(2*TH_CENTER*180/Math.PI).toFixed(1)}° = 2θc  ·  하드웨어는 고정, 움직이는 것은 θc 뿐  ·  부채꼴 폭 ±${(FAN*180/Math.PI).toFixed(1)}°, 그림에서만 ×${GAIN} 과장`,
+             lx, h-12*S);
+}
+
+
+/* ── 프로파일 ─────────────────────────────────────────────── */
+function drawProf(st){
+  const {c,w,h}=ctxOf("prof");
+  const AMB=css("--amb")||"#E8901F", INK=css("--panel-ink")||"#C6D6E1";
+  const INK2=css("--panel-ink-2")||"#7E94A4", RULE=css("--panel-rule")||"#22333F";
+  const S=w/900;
+  const L=52*S, Rr=w-16*S, T=26*S, B=h-34*S;
+  const YMAX=1.16;
+  const xOf=p=>L+(Rr-L)*p/(NPX-1),
+        yOf=v=>B-(B-T)*Math.max(0,Math.min(YMAX,v))/YMAX;
+
+  /* 격자 */
+  c.strokeStyle=RULE; c.lineWidth=1; c.fillStyle=INK2;
+  c.font=`400 ${10.5*S}px ${css("--font-mono")}`; c.textAlign="right";
+  [0,.25,.5,.75,1].forEach(v=>{
+    const y=yOf(v);
+    c.beginPath(); c.moveTo(L,y); c.lineTo(Rr,y); c.stroke();
+    c.fillText((v*100).toFixed(0)+"%",L-7*S,y+3.5*S);
+  });
+
+  /* 보정점 두 개 */
+  [[thetaToPx(thetaC(nWater(0))),"RO-DI 0"],[thetaToPx(thetaC(nWater(35))),"표준액 35"]]
+  .forEach(([p,lab])=>{
+    const x=xOf(p);
+    c.beginPath(); c.moveTo(x,T-6*S); c.lineTo(x,B); c.strokeStyle=withAlpha(INK,.32);
+    c.lineWidth=1*S; c.setLineDash([3*S,3*S]); c.stroke(); c.setLineDash([]);
+    c.fillStyle=withAlpha(INK,.55); c.textAlign="center";
+    c.font=`400 ${10*S}px ${css("--font-mono")}`;
+    c.fillText(lab,x,T-10*S);
+  });
+
+  /* 막대 */
+  const bw=(Rr-L)/(NPX-1);
+  st.out.forEach((v,p)=>{
+    const x=xOf(p);
+    c.fillStyle=withAlpha(AMB,.22+.78*Math.max(0,Math.min(1,v)));
+    c.fillRect(x-bw*.42,yOf(v),bw*.84,B-yOf(v));
+  });
+
+  /* 윤곽선 */
+  c.beginPath();
+  st.out.forEach((v,p)=>{p===0?c.moveTo(xOf(p),yOf(v)):c.lineTo(xOf(p),yOf(v));});
+  c.strokeStyle=AMB; c.lineWidth=1.8*S; c.stroke();
+
+  /* 현재 경계 */
+  if(st.tc!==null){
+    const p=thetaToPx(st.tc);
+    if(p>=-4&&p<=NPX+4){
+      const x=xOf(Math.max(0,Math.min(NPX-1,p)));
+      c.beginPath(); c.moveTo(x,T-6*S); c.lineTo(x,B+8*S);
+      c.strokeStyle="#FFFFFF"; c.lineWidth=1.6*S; c.stroke();
+      c.fillStyle="#FFFFFF"; c.textAlign="center";
+      c.font=`600 ${11.5*S}px ${css("--font-mono")}`;
+      c.fillText(`경계 ${p.toFixed(1)} px`,x,B+22*S);
+    }
+  }
+
+  /* 축 */
+  c.strokeStyle=withAlpha(INK,.4); c.lineWidth=1.2*S;
+  c.beginPath(); c.moveTo(L,T-6*S); c.lineTo(L,B); c.lineTo(Rr,B); c.stroke();
+  c.fillStyle=INK2; c.textAlign="left"; c.font=`400 ${10.5*S}px ${css("--font-mono")}`;
+  c.fillText("픽셀 0",L,B+22*S);
+  c.textAlign="right"; c.fillText("127",Rr,B+22*S);
+  c.textAlign="left"; c.fillStyle=INK; c.font=`500 ${12*S}px ${css("--font-mono")}`;
+  c.fillText("어레이 출력 — 되돌아온 빛의 양",L+6*S,T+2*S);
+
+  const pk=st.tc===null?null:thetaToPx(st.tc);
+  if(pk===null||pk<0||pk>NPX-1){
+    c.textAlign="center"; c.font=`600 ${13.5*S}px ${css("--font-body")}`;
+    const msg=(pk!==null&&pk<0)
+      ? "꺾임 없음 — 전 각도 전반사 (풀스케일 기준점)"
+      : "경계가 어레이 밖 — 측정 불가";
+    const tw=c.measureText(msg).width, cxm=(L+Rr)/2, cym=B-34*S;
+    c.fillStyle=css("--panel-bg")||"#0A1016";
+    c.fillRect(cxm-tw/2-14*S, cym-15*S, tw+28*S, 26*S);
+    c.strokeStyle=withAlpha(css("--panel-ink")||"#C6D6E1",.35); c.lineWidth=1*S;
+    c.strokeRect(cxm-tw/2-14*S, cym-15*S, tw+28*S, 26*S);
+    c.fillStyle="#FFFFFF"; c.fillText(msg,cxm,cym+4*S);
+  }
+}
+
+/* ── 갱신 ─────────────────────────────────────────────────── */
+function render(){
+  const st=profile();
+  st.mode=state.mode; st.sal=state.sal;
+  drawRays(st); drawProf(st);
+
+  const set=(id,v)=>document.getElementById(id).innerHTML=v;
+  set("r-n",st.ns.toFixed(5));
+  set("r-tc",st.tc===null?"—":st.tc*180/Math.PI<50
+      ? `${(st.tc*180/Math.PI).toFixed(2)}<small>°  창 밖</small>`
+      : `${(st.tc*180/Math.PI).toFixed(3)}<small>°</small>`);
+  const p=st.tc===null?null:thetaToPx(st.tc);
+  const inWin=p!==null&&p>=0&&p<=NPX-1;
+  set("r-px",p===null?"—":inWin?`${p.toFixed(1)}<small> px</small>`
+      :`<small>창 밖 · 전 각도 전반사</small>`);
+  set("r-dp",inWin?`${(p-P0>=0?"+":"")}${(p-P0).toFixed(1)}<small> px</small>`:"—");
+
+  salEl.style.opacity = state.mode==="air" ? ".38" : "1";
+  document.querySelectorAll("#presets button").forEach(b=>{
+    const on = b.dataset.mode==="air" ? state.mode==="air"
+             : state.mode==="liquid" && Math.abs(state.sal-(+b.dataset.sal))<.05;
+    b.setAttribute("aria-pressed",on?"true":"false");
+  });
+}
+
+const salEl=document.getElementById("sal");
+salEl.addEventListener("input",()=>{state={mode:"liquid",sal:+salEl.value};render();});
+document.getElementById("blur").addEventListener("change",render);
+document.querySelectorAll("#presets button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    if(b.dataset.mode==="air"){state.mode="air";}
+    else{state={mode:"liquid",sal:+b.dataset.sal}; salEl.value=b.dataset.sal;}
+    render();
+  });
+});
+let rt; window.addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(render,120);});
+if(window.matchMedia) window.matchMedia("(prefers-color-scheme:dark)")
+  .addEventListener("change",render);
+document.fonts&&document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>
