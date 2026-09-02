@@ -292,7 +292,6 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
       <span><i style="background:#2E7D46"></i>검출기 홀더 + TSL1401CL 칩</span>
       <span><i style="background:#C0392B"></i>LED + 슬릿</span>
       <span><i style="background:#20262B"></i>미광 조리개</span>
-      <span><i style="background:#E0913A"></i>착탈 칼라</span>
       <span><i style="background:#7C8794"></i>받침대 · 수평조절</span>
     </div>
   </div>
@@ -312,14 +311,21 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
     뒤집혀 있었습니다(<code class="mono">P_CZ = P_SAG - P_R</code>). 포켓이 아래로 벌어지는 언더컷이 되어 프리즘이 들어가지
     않고 인쇄도 안 되는 형상이었습니다. <code class="mono">P_CZ = P_R - P_SAG</code> 로 고쳤습니다 —
     <b>곡률 중심은 측정면 위(시료 쪽)에 있습니다.</b></p>
+    <p><b>2026-09-02 정정 2 — 블록 깊이.</b> <code class="mono">hubZ</code> 가 프리즘만 보고
+    <code class="mono">ceil(사지타 + 2·벽 + 5) = 42</code> 로 정해져 있었습니다. 팔이 26.15° 아래로 내려가므로
+    <b>검출 채널이 L = 59.8 mm 에서 블록 바닥을 뚫고 나갔고, 칩이 바로 L = 60 mm</b> 입니다
+    (칩 아래 살 −0.07 mm). 3D 에서 LED·칩 상자가 블록 밖 아래에 떠 있던 것이 이것입니다.
+    깊이를 팔 끝 기준으로 다시 잡아 <b>48 mm</b> 가 되었고(최심점은 칩 포켓 — 어레이 방향 ±4.7 mm),
+    측정면 높이 43 → <b>49 mm</b>, 본체 높이 45 → <b>51 mm</b> 입니다. 위 표의
+    <b>“블록 깊이 검사”</b> 행이 이제 이것을 자동으로 판정합니다.</p>
   </div>
 </section>
 
 <section>
   <p class="eyebrow">도면 3</p>
   <h2>인쇄 부품</h2>
-  <p class="lede">허브만 정밀하면 됩니다. 나머지는 팔 축에 수직한 평평한 접착 패드에 붙이므로 관대합니다 —
-    다이소 전선몰딩이든 우드락 덕트든 상관없습니다.</p>
+  <p class="lede">일체형이라 <b>정밀한 부품은 본체 반쪽 두 개뿐</b>입니다. 프리즘 포켓·관통 채널·인쇄 조리개·
+    LED 자리·칩 포켓이 전부 그 안에 있고, 밖에 붙일 덕트도 접착 패드도 없습니다.</p>
   <div class="sheet">
     <div class="sheet-hd"><b>부품 도면</b><span id="sc-4">SCALE 1:1.5</span></div>
     <div class="sheet-bd"><svg id="svg-parts" role="img" aria-label="인쇄 부품 도면"></svg></div>
@@ -371,7 +377,7 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
 </section>
 
 <div class="note" style="margin-top:34px">
-  <p><b>넘어지지 않습니다.</b> 일체형이 되면서 본체가 낮아져(측정면 높이 47 mm)
+  <p><b>넘어지지 않습니다.</b> 일체형이 되면서 본체가 낮아져(측정면 높이 49 mm)
   무게중심이 더 내려갔습니다. 바닥판 220 × 70 이 가장 무거운 부품이므로
   <b>충진을 아끼지 마십시오 — 무게가 곧 안정성입니다.</b> 수평조절 3점은 삼각 지지라
   덜컹거리지 않고, 발 자리는 블록 중심에 맞춰 비대칭입니다.
@@ -411,11 +417,13 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
   대가는 렌즈 1장과 <b>프리즘 표면 λ/16 PV(37 nm) 평면도</b>인데, 사출 아크릴이 그걸
   만족하는지는 아직 모릅니다. <b>판정은 이미 설계돼 있습니다</b> —
   <code>HOBBY_BUILD.md</code> §6 슬릿 폭 스윕에서 경계 폭이 슬릿에 반비례하면 회절 지배라
-  렌즈가 유효합니다. <b>팔을 착탈식으로 만든 덕분에 허브를 다시 인쇄하지 않고 갈아끼울 수
-  있습니다.</b></p>
+  렌즈가 유효합니다. <b>일체형이 되면서 착탈 팔은 없어졌습니다</b> — 대신 <b>조명측 끝을 플러그로</b>
+  뽑습니다. µm 안정성이 필요한 것은 검출팔뿐이고 조명팔은 액적 크기만 정하므로,
+  채널 끝에 끼우는 20 mm 플러그를 <b>슬릿판 / 렌즈판</b> 두 종류로 인쇄하면
+  본체를 다시 뽑지 않고 판정할 수 있습니다.</p>
   <p><b>미결정 하나가 남아 있습니다.</b> 조명팔에 콘덴서 렌즈를 넣느냐(배치 A)가 표면 평면도 요구를 정하는데
-  아직 안 정했습니다. 그래서 이 헤드는 <b>조명팔 접착 패드를 검출팔과 똑같이</b> 만들어 두었습니다 —
-  나중에 렌즈 홀더를 같은 자리에 끼워 넣으면 되고, 지금 결정하지 않아도 인쇄가 낭비되지 않습니다.</p>
+  아직 안 정했습니다. 그래서 조명측 끝을 <b>플러그로 분리</b>해 두었습니다 —
+  나중에 렌즈판을 같은 자리에 끼우면 되고, 지금 결정하지 않아도 본체 인쇄가 낭비되지 않습니다.</p>
 </div>
 
 </main>
@@ -468,6 +476,10 @@ function traceRay(x0, th, R, cz, np){
 const P0 = {T:26, lam:590, np:1.491, wall:3.5, fit:0.35, top:3, m3:3.4};
 /* TSL1401CL CL 패키지 — docs/datasheets/TSL1401CL.pdf Figure 10 */
 const CHIP = {L:9.4, W:3.0, H:1.2, arr:8.064, pitch:0.0635, npx:128, off:0.305};
+const LED_D = 5.25;   /* 5 mm LED 압입 지름 */
+/* 조명측 끝은 **플러그**다. 슬릿판 / 렌즈판을 갈아끼우려고 분리했다 —
+   µm 안정성이 필요한 것은 검출팔뿐이고 조명팔은 액적 크기만 정한다. */
+const PLUG = {w:10, y:10, L:20};
 const PRESETS = [
   {id:'half60', name:'반원 60×30×10  ★ 확정',  chord:60,  sag:30, thick:10},
   {id:'seg60',  name:'활꼴 60×20×6',            chord:60,  sag:20, thick:6},
@@ -502,7 +514,21 @@ function geom(){
      LED·검출기 자리를 블록 끝에 직접 파는 것이 단순하고 강합니다.
      광로는 블록을 관통하는 채널이고, 조리개는 인쇄로 넣습니다. */
   const hubY = +(S.thick + 2*P0.fit + 2*P0.wall).toFixed(2);
-  const hubZ = Math.ceil(h + 2*P0.wall + 5);
+  /* ★ 블록 깊이는 프리즘이 아니라 **내려가는 팔**이 정한다 (2026-09-02 정정).
+     팔이 26° 아래로 가므로 팔 끝의 칩·LED 자리가 프리즘 바닥보다 훨씬 깊다.
+     옛 식 ceil(h + 2*wall + 5) = 42 는 프리즘만 보고 정한 값이라, 검출 채널이
+     L = 59.8 에서 블록 바닥을 뚫고 나갔다 — 칩이 바로 L = 60 이다.
+     각 자리마다 "축에서 감싸야 할 반경 r" 을 주고 가장 깊은 것 + 벽으로 잡는다.
+     칩은 어레이 방향으로 9.4 mm 라 r = 4.7 이고 이것이 최심점이다.
+     배선은 블록 밖으로 빠져나가는 슬롯이라 살을 요구하지 않으므로 여기 안 센다. */
+  const encl = [
+    ["채널",     Math.max(S.arm, S.armD),     winZ/2],
+    ["조명 플러그", S.arm + stackLen("illum"), PLUG.w/2],
+    ["칩 포켓",  S.armD + CHIP.H,             CHIP.L/2]
+  ];
+  const deepest = encl.map(([n, L, r]) => ({n, L, r,
+    need: -(tr.P[1] - L*Math.sin(armR) - r*Math.cos(armR)) + P0.wall}));
+  const hubZ = Math.ceil(Math.max(h + 2*P0.wall + 5, ...deepest.map(t => t.need)));
   const endX1 = tr.P[0] + Math.max(S.arm, S.armD)*Math.cos(armR);
   const endZ1 = tr.P[1] - Math.max(S.arm, S.armD)*Math.sin(armR);
   /* 블록은 프리즘과 두 팔 끝을 모두 감싼다 */
@@ -530,13 +556,16 @@ function geom(){
     ex:tr.P[0], ez:tr.P[1],
     endX: tr.P[0] + S.arm*Math.cos(armR),
     endZ: tr.P[1] - S.arm*Math.sin(armR),
-    winZ, padW, padL, padOff, bossL, hubX, hubL, hubR, hubY, hubZ, bbX,
+    winZ, padW, padL, padOff, bossL, hubX, hubL, hubR, hubY, hubZ, bbX, deepest,
     stops, stopsI, stopsFor,
     reachI, reachD, xNeedI: xNeed(reachI), xNeedD: xNeed(reachD), minHalf,
-    /* 받침대 — 블록 바닥보다 아래, 블록 중심에 맞춰 놓는다 */
-    baseZ: -(hubZ + 1), baseL: hubL + 12, baseR: hubR + 12,
+    /* 블록 바닥이 바닥판 윗면에 **닿는다**. 예전 -(hubZ+1) 은 1 mm 떠 있어서
+       수직 기준면이 없었다 — 홈턱 옆면만으로 버티면 뚜껑 닫는 힘에 흔들린다. */
+    baseZ: -hubZ, baseL: hubL + 12, baseR: hubR + 12,
+    rail: {len:90, t:5, h:15},
     baseW: hubX + 24, baseD: 70, baseT: 6,
-    bolts: [[-(hubL-6), -hubZ*0.74], [hubR-6, -hubZ*0.74],
+    /* 0.74 면 오른쪽 볼트가 배선 슬롯을 관통한다 (SCAD 단면에서 확인, 2026-09-02) */
+    bolts: [[-(hubL-6), -hubZ*0.60], [hubR-6, -hubZ*0.60],
             [-hubL*0.32, -(h+6)],    [hubR*0.32, -(h+6)]],
     xp: Math.sqrt(Math.pow(R+P0.fit,2) - cz*cz),
     xw: Math.max(6, a - 5),
@@ -690,12 +719,15 @@ function drawLayout(){
     const bz = g0.baseZ, bw = g0.baseW;
     g.appendChild(el('rect', {x:X(-g0.baseL), y:Z(bz), width:bw*k, height:g0.baseT*k,
       fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
-    /* 블록을 물어 세우는 홈턱 — 블록 바닥이 바닥판 1 mm 위에 바로 앉는다 */
-    for(const sd of [-1, 1]){
-      const xg = (g0.hubR - g0.hubL)/2 + sd*(g0.hubY/2 + 2.8);
-      g.appendChild(el('rect', {x:X(xg) - 2.5*k, y:Z(bz + 10),
-        width:5*k, height:10*k, fill:'var(--alu)', stroke:'var(--ink-2)',
-        'stroke-width':1, opacity:.9}));
+    /* 홈턱은 블록의 **두께 방향**으로 벌어져 있으므로 이 단면(Y=0)에는 안 잘린다.
+       뒤에 있다는 뜻으로 파선으로만 그린다. */
+    {
+      const rl = g0.rail, xc0 = (g0.hubR - g0.hubL)/2;
+      g.appendChild(el('rect', {x:X(xc0 - rl.len/2), y:Z(bz + rl.h),
+        width:rl.len*k, height:rl.h*k, fill:'none', stroke:'var(--grey)',
+        'stroke-width':.9, 'stroke-dasharray':'5 4'}));
+      g.appendChild(txt(X(xc0), Z(bz + rl.h) + rl.h*k/2 + 4,
+        '홈턱 ×2 (단면 뒤 · 두께 방향)', {size:9, fill:'var(--grey)'}));
     }
     /* 수평 조절 나사 3개 */
     const fxs = [-g0.baseL*0.84, (g0.baseR - g0.baseL)/2, g0.baseR*0.84];
@@ -1035,7 +1067,6 @@ function build3D(){
   const mSen   = new THREE.MeshStandardMaterial({color:0x2E7D46, roughness:.7});
   const mChip  = new THREE.MeshStandardMaterial({color:0x14181C, roughness:.9});
   const mMir   = new THREE.MeshStandardMaterial({color:0xD7E2EA, roughness:.06, metalness:.95});
-  const mCol   = new THREE.MeshStandardMaterial({color:0xE0913A, roughness:.7});
   const mBase  = new THREE.MeshStandardMaterial({color:0x7C8794, roughness:.9, metalness:.04});
 
   /* 프리즘 */
@@ -1121,10 +1152,12 @@ function build3D(){
     plate.position.set(xc, bz - g0.baseT/2, 0);
     gBase.add(plate);
     /* 블록을 물어 세우는 홈턱 */
+    /* 홈턱은 블록의 **두께 방향**(깊이)으로 벌어져야 한다.
+       예전 코드는 design X 로 벌려 놓아 블록 한가운데를 뚫고 올라왔다 — 2026-09-02 정정 */
     for(const sd of [-1, 1]){
-      const w = 5, rib = new THREE.Mesh(
-        new THREE.BoxGeometry(w, 10, Math.min(bd - 16, 54)), mBase);
-      rib.position.set(xc + sd*(g0.hubY/2 + w/2 + 0.3), bz + 5, 0);
+      const rl = g0.rail, rib = new THREE.Mesh(
+        new THREE.BoxGeometry(rl.len, rl.h, rl.t), mBase);
+      rib.position.set(xc, bz + rl.h/2, sd*(g0.hubY/2 + rl.t/2 + 0.3));
       gBase.add(rib);
     }
     [-g0.baseL*0.84, xc, g0.baseR*0.84].forEach((x, i) => {
@@ -1250,6 +1283,13 @@ function rows(){
                           : ' <span class="tag warn">초과</span>')).join('<br>');
       })(),
       '슬릿은 조명팔 끝에 있고 LED·확산판은 그 뒤. 칩은 검출팔 끝'],
+    ['<b>블록 깊이 검사</b>',
+      g0.deepest.map(t => t.n + ' L' + t.L.toFixed(1) + ' · r' + t.r.toFixed(2)
+        + ' → ' + t.need.toFixed(1)
+        + (t.need <= g0.hubZ ? ' <span class="tag ok">OK</span>'
+                             : ' <span class="tag warn">초과</span>')).join('<br>')
+      + '<br>프리즘만 보면 ' + (g0.h + 2*P0.wall + 5) + ' → 채택 <b>' + g0.hubZ + '</b>',
+      '팔이 26° 아래로 가므로 팔 끝이 프리즘 바닥보다 깊다. 이 검사가 없어 옛 값 42 는 칩 자리에서 바닥을 뚫었다'],
     ['블록 (비대칭)', '조명측 '+g0.hubL+' + 검출측 '+g0.hubR+' = <b>'+g0.hubX+' mm</b>',
       '프리즘만 감싸는 최소는 '+g0.minHalf.toFixed(1)+' mm'],
     ['구조', '<span class="tag ok">허브 일체형</span> 덕트·칼라·새들 없음',
@@ -1284,17 +1324,19 @@ function rows(){
   const P = [
     ['hub_a / hub_b', '<b>본체 반쪽</b> (일체형·비대칭)', g0.hubX+' × '+(g0.hubY/2).toFixed(2)+' × '
       +(g0.hubZ+P0.top), '각 1',
-      '프리즘 포켓 + 관통 채널 + 조리개 + LED·칩 자리가 <b>한 부품에</b>'],
-    ['clamp', '프리즘 누름쇠', (S.chord+2*P0.wall)+' × '+g0.hubY+' × 6', '1', '양 끝만 눌러 측정면을 안 가림'],
-    ['cap', '<b>차광 캡</b>', (S.chord+2*P0.wall)+' × '+(g0.hubY+8)+' × 12', '1',
-      '시료를 덮어 <b>상부 외광을 차단</b>. 수동이라 여닫음 (§ILLUMINATION 5)'],
-    ['slit', '슬릿 클램프', '30 × 24 × 6', '1', '커터칼 날 2장 · 심 <b>1~2장(0.13 mm)</b>'],
-    ['led', 'LED 자리', 'ø5.25 압입 + 유산지 슬롯', '1', '돔을 갈아 평평하게. 본체에 직접 파임'],
-    ['sensor', 'TSL1401CL 칩 포켓', CHIP.L+' × '+CHIP.W+' × '+CHIP.H, '1',
-      '에폭시 고정 · 창을 덮지 말 것 · 선 5가닥 + 0.1 µF'],
-    ['base', '받침대', g0.baseW+' × '+g0.baseD+' × '+g0.baseT, '1',
-      '홈턱으로 본체를 물어 세움. <b>충진을 아끼지 마십시오</b>'],
-    ['foot', 'M4 수평조절 나사 + 너트', 'M4 × 12', '3', '삼각 지지']
+      '프리즘 포켓 + 관통 채널 + 인쇄 조리개 + 플러그 캐비티 + 칩 포켓 + 배선 슬롯이 <b>한 부품에</b>'],
+    ['base', '받침대', g0.baseW+' × '+g0.baseD+' × '+(-g0.baseZ+g0.baseT+P0.top), '1',
+      '바닥판 + 홈턱 + <b>힌지 기둥</b> + M4 3점. <b>충진을 아끼지 마십시오</b>'],
+    ['cap', '<b>차광 캡</b>', '76 × 51 × 46', '1',
+      '시료를 덮어 상부 외광 차단. <b>힌지가 받침대에 달려</b> 닫는 힘이 본체를 안 휘게 한다'],
+    ['slit_plug', '조명측 플러그', (PLUG.w-0.3)+' × '+(PLUG.y-0.3)+' × 22.6', '1',
+      '커터칼 날 2장 · 유산지 · LED. <b>분할면에서 떨어뜨려 넣는다.</b> 렌즈판으로 갈아끼울 자리'],
+    ['—', '프리즘 누름쇠 <span class="tag ok">없어짐</span>', '—', '0',
+      '측정창 턱(|x| '+g0.xw+'~'+g0.xp.toFixed(1)+')이 프리즘을 위에서 물어 준다 — 인쇄로 해결'],
+    ['M3 × 35', '조립 겸 받침대 고정', '가운데 2본', '2', '홈턱–본체–홈턱 관통. 나사가 늘지 않는다'],
+    ['M3 × 25', '클램셸 조임', '바깥 2본', '2', '너트 포함'],
+    ['M3 × 20', '힌지 핀', '—', '2', '캡 귀 ↔ 받침대 기둥'],
+    ['M4 × 12', '수평조절 발 + 너트', '—', '3', '삼각 지지']
   ];
     document.getElementById('parts-body').innerHTML = P.map(r =>
     '<tr><td class="mono" style="color:var(--deep);font-weight:500">'+r[0]+'</td><td>'+r[1]+'</td>'
@@ -1302,31 +1344,44 @@ function rows(){
     +'<td style="color:var(--grey);font-size:12.5px">'+r[4]+'</td></tr>').join('');
 
   const c = s => '<span class="c">'+s+'</span>', kk = s => '<span class="k">'+s+'</span>';
+  const g1 = geom();
+  const st = a => '[' + a.map(t => '['+t.L+','+t.ap+']').join(',') + ']';
   document.getElementById('scad-out').innerHTML =
-[c('// ── 프리즘 ─────────────────────────────────────────'),
- 'P_CHORD = '+S.chord+';    '+c('// 현'),
- 'P_SAG   = '+S.sag+';    '+c('// 사지타'),
- 'P_THICK = '+S.thick+';    '+c('// 두께 — 실측해서 고칠 것'),
- 'FIT     = '+P0.fit+';  '+c('// 포켓 편측 여유'),
+[c('// psu-meter 측정 헤드 상수 — docs/head.html 이 뽑은 값.'),
+ c('// scad/optical_bench.scad 의 같은 블록을 이것으로 덮어쓰면 된다.'),
  '',
- 'P_R  = '+geom().R.toFixed(4)+';   '+c('// (현/2)^2 + 사지타^2 / (2*사지타)'),
- 'P_CZ = '+geom().cz.toFixed(4)+';   '+kk('// 곡률중심은 측정면 위. 2026-09-02 부호 정정'),
+ c('// ── 프리즘 ─────────────────────────────────────'),
+ 'P_CHORD = '+S.chord+';', 'P_SAG   = '+S.sag+';',
+ 'P_THICK = '+S.thick+';      '+c('// 실물 도착하면 실측'),
+ 'FIT     = '+P0.fit+';',
+ 'P_R     = '+g1.R.toFixed(4)+';', 'P_CZ    = '+g1.cz.toFixed(4)+';',
  '',
- c('// ── 광학 ───────────────────────────────────────────'),
- 'ARM_DEG = '+deg(geom().armR).toFixed(4)+';  '+c('// 팔이 측정면에서 아래로'),
- 'EXIT_X  = '+geom().ex.toFixed(4)+';  '+c('// 광선이 곡면을 지나는 자리'),
- 'EXIT_Z  = '+geom().ez.toFixed(4)+';',
- 'WIN_Z   = '+geom().winZ+';       '+c('// 부채꼴 '+S.fan+'deg x 팔 '+S.arm+'mm'),
- 'PAD_L   = '+geom().padL+';      '+c('// 접착 패드 길이'),
- 'PAD_W   = '+geom().padW+';      '+c('// 접착 패드 폭'),
+ c('// ── 광학 ───────────────────────────────────────'),
+ 'ARM_DEG = '+deg(g1.armR).toFixed(4)+';',
+ 'EXIT_X  = '+g1.ex.toFixed(4)+';', 'EXIT_Z  = '+g1.ez.toFixed(4)+';',
+ 'WIN_Z   = '+g1.winZ+';      '+c('// 부채꼴 '+S.fan+'deg x 검출팔 '+S.armD),
+ 'ARM_I   = '+S.arm+';       '+c('// 조명팔 — 끝이 슬릿'),
+ 'ARM_D   = '+S.armD+';       '+c('// 검출팔 — 끝이 칩'),
+ 'REACH_I = '+g1.reachI+';       '+c('// 조명측 부품 적재 총 도달'),
+ 'REACH_D = '+g1.reachD+';       '+c('// 검출측'),
+ 'STOPS_I = '+st(g1.stopsI)+';',
+ 'STOPS_D = '+st(g1.stops)+';',
  '',
- c('// ── 허브 ───────────────────────────────────────────'),
+ c('// ── 부품 ───────────────────────────────────────'),
+ 'CHIP_L = '+CHIP.L+'; CHIP_W = '+CHIP.W+'; CHIP_H = '+CHIP.H+';   '+c('// TSL1401CL CL 패키지'),
+ 'LED_D  = '+LED_D+';',
+ 'PLUG_W = '+PLUG.w+'; PLUG_Y = '+PLUG.y+'; PLUG_L = '+PLUG.L+';   '+c('// 조명측 플러그'),
+ '',
+ c('// ── 블록 ───────────────────────────────────────'),
  'HUB_TOP = '+P0.top+';',
- 'HUB_L   = '+geom().hubL+';      '+c('// 조명측 반폭 (비대칭)'),
- 'HUB_R   = '+geom().hubR+';      '+c('// 검출측 반폭'),
- 'HUB_Z   = '+geom().hubZ+';',
- 'WALL    = '+P0.wall+';',
- 'PAD_OFF = '+geom().padOff+';      '+kk('// on_arm(s, PAD_OFF) — 곡면 통과점에서의 거리')
+ 'HUB_L   = '+g1.hubL+'; HUB_R = '+g1.hubR+';',
+ 'HUB_Z   = '+g1.hubZ+';      '+kk('// ★ 프리즘이 아니라 팔 끝이 정한다'),
+ 'WALL    = '+P0.wall+';  M3 = '+P0.m3+';',
+ '',
+ c('// ── 받침대 ─────────────────────────────────────'),
+ 'BASE_W = '+g1.baseW+'; BASE_D = '+g1.baseD+'; BASE_T = '+g1.baseT+';',
+ 'BASE_Z = '+g1.baseZ+';     '+kk('// 바닥판 윗면 = 블록 바닥 (뜨지 않는다)'),
+ 'RAIL_LEN = '+g1.rail.len+'; RAIL_T = '+g1.rail.t+'; RAIL_H = '+g1.rail.h+';'
 ].join('\n');
 }
 
