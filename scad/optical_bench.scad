@@ -1,6 +1,6 @@
 // ============================================================================
 //  psu-meter — 1순위 광학 벤치 인쇄 부품  (취미 제작용)
-//  같이 볼 것: ../HOBBY_BUILD.md
+//  같이 볼 것: ../HOBBY_BUILD.md · ../docs/head.html (도면 · 3D · 이 상수를 뽑아 줌)
 //
 //  ⚠ 이 파일은 OpenSCAD 에서 렌더 검증을 하지 못했습니다. 열어서 F5 로 보고
 //    치수를 확인한 뒤 인쇄하십시오. 수치 자체는 src/illum_sim.py 계산값입니다.
@@ -11,11 +11,17 @@
 //           +Z = 위(시료 쪽).  유리는 Z<0
 //
 //  ── 설계 근거 (src/illum_sim.py, src/segment_optics.py) ──────────────────
-//    팔 각도(현 기준)               15.37 deg     두 팔 사이각 149.26 deg
-//    광선이 곡면을 통과하는 자리    x = 22.43, z = -11.02 mm
+//    팔 각도(현 기준)               26.1525 deg   두 팔 사이각 127.695 deg
+//    광선이 곡면을 통과하는 자리    x = 26.9287, z = -13.2228 mm
+//    곡면 입사각                    0 deg  (정확한 반원 -> 굴절 없음)
 //    ★ 외부 광선은 측정점을 지나지 않습니다 — 곡면에서 꺾이기 때문입니다.
 //      그래서 팔 축은 위 통과점을 지나는 직선으로 정의합니다.
-//    팔 250 mm 끝(검출기)           수평 241 mm, 아래 66 mm
+//    팔 160 mm 끝(검출기)           수평 143.6 mm, 아래  70.5 mm
+//      -> 측정점 기준 수평 170.6 mm, 아래 83.7 mm.  전체 스팬 341 mm
+//    (250 mm 에서 줄였습니다 — 경계 폭은 PSU 로 환산하면 팔에 무관합니다. 2026-09-02)
+//    ★ 정확한 반원(사지타 = 현/2)이면 곡면 입사각이 0° 라 굴절이 없고
+//      팔 각도가 임계각의 여각과 정확히 같아집니다. 활꼴은 여기서 한 번 더 꺾입니다.
+//    형상을 바꾸면 위 네 수치가 전부 달라집니다 — ../docs/head.html 이 다시 풀어 줍니다.
 //
 //  ── 설계 방침 ────────────────────────────────────────────────────────────
 //    소켓 대신 **평평한 접착면**을 씁니다. 취미 제작에서 훨씬 관대하고,
@@ -37,31 +43,40 @@ PART = "preview";
 
 $fn = 90;
 
-// ── 프리즘 : 사이언스트리 8종 반원렌즈 ──────────────────────────────────
+// ── 프리즘 : 반원 60 x 30 x 10  (2026-09-02 확정 — 재구매 가능한 규격) ──
+//  정확한 반원이라 P_CZ = 0, 즉 곡률 중심이 곧 측정점이고 곡면 굴절이 없습니다.
+//  활꼴 60x20x6 로 바꾸려면 P_SAG=20, P_THICK=6 과 아래 ARM_DEG/EXIT_* 를 같이 고치십시오
+//  (값은 ../docs/head.html 이 뽑아 줍니다).
 P_CHORD = 60;    // 현
-P_SAG   = 20;    // 사지타
-P_THICK = 6;     // 두께 — 도착하면 실측해서 고치십시오
+P_SAG   = 30;    // 사지타 = 현/2 -> 정확한 반원
+P_THICK = 10;    // 두께 — 도착하면 실측해서 고치십시오
 FIT     = 0.35;  // 포켓 편측 여유
 
 P_R  = (pow(P_CHORD/2, 2) + pow(P_SAG, 2)) / (2*P_SAG);  // 32.5
-P_CZ = P_SAG - P_R;                                       // -12.5
+P_CZ = P_R - P_SAG;   // +12.5 — 곡률 중심은 측정면 **위**(시료 쪽). 2026-09-02 부호 정정
 
 // ── 광학 ────────────────────────────────────────────────────────────────
-ARM_DEG = 15.37;            // 팔이 측정면에서 아래로
-EXIT_X  = 22.43;            // 광선이 곡면을 지나는 자리
-EXIT_Z  = -11.02;
+ARM_DEG = 26.1525;          // 팔이 측정면에서 아래로. 정확한 반원이면 90 - theta_c
+EXIT_X  = 26.9287;          // 광선이 곡면을 지나는 자리
+EXIT_Z  = -13.2228;
 WIN_Z   = 9;                // 광창 높이(부채꼴 방향).  2도 + 여유
-PAD_L   = 30;               // 접착 패드 길이
-PAD_W   = 26;               // 접착 패드 폭 (Y)
+PAD_L   = 30;               // 접착 패드 보스 길이
+PAD_W   = max(20, ceil(max(WIN_Z, P_THICK) + 2*3.5 + 1));   // 접착 패드 한 변
 
 // ── 허브 ────────────────────────────────────────────────────────────────
-HUB_TOP = 3;                // 측정면 위로 남기는 살
-HUB_X   = 132;              // 전체 X
-HUB_Z   = 42;               // 측정면 아래로 파는 깊이
+//  블록은 프리즘만 감싼다. 접착 패드는 팔 축을 따라 밖으로 돌출하는 보스다.
+//  (패드를 멀리 두면 블록이 그만큼 커져 프린터 베드를 넘는다 — 2026-09-02 정정)
+HUB_TOP = 3;                          // 측정면 위로 남기는 살
 WALL    = 3.5;
+HUB_X   = 2*ceil(P_CHORD/2 + WALL + 2.5);
+HUB_Z   = ceil(P_SAG + 2*WALL + 5);   // 측정면 아래로 파는 깊이
 HUB_Y   = P_THICK + 2*FIT + 2*WALL;
+PAD_OFF = ceil((HUB_X/2 - EXIT_X)/cos(ARM_DEG) + PAD_W/2*tan(ARM_DEG) + 8);
+BOSS_L  = min(PAD_L, PAD_OFF - 3);
 M3      = 3.4;
 PEG_D   = 4;
+BOLT_Z  = -HUB_Z*0.74;                // 포켓 옆구리 — 프리즘도 광로도 없는 자리
+BASE_Z  = -(P_SAG + 6);               // 곡면 정점 아래
 
 // ============================================================================
 //  기본 형상
@@ -98,8 +113,8 @@ module hub_solid() {
             cube([HUB_X, HUB_Y, HUB_Z + HUB_TOP], center = true);
         // 양쪽 접착 패드 — 팔 축에 수직한 평면
         for (s = [-1, 1])
-            on_arm(s, 46) translate([0, 0, -PAD_L/2])
-                cube([PAD_W, PAD_W, PAD_L], center = true);
+            on_arm(s, PAD_OFF) translate([0, 0, -BOSS_L/2])
+                cube([PAD_W, PAD_W, BOSS_L], center = true);
     }
 }
 
@@ -117,11 +132,13 @@ module hub_full() {
             cube([P_CHORD - 10, HUB_Y + 4, HUB_TOP + 3], center = true);
 
         // 광로 : 곡면 안쪽 2 mm 에서 패드 바깥까지
-        for (s = [-1, 1]) beam(s, -2, 62);
+        for (s = [-1, 1]) beam(s, -2, PAD_OFF + 1);
 
-        // 조립 M3
-        for (x = [-52, -14, 14, 52]) translate([x, 0, -26])
-            rotate([90, 0, 0]) cylinder(h = HUB_Y + 4, d = M3, center = true);
+        // 조립 M3 — 포켓과 광로를 모두 피한 네 자리
+        for (p = [[-(HUB_X/2 - 6), BOLT_Z], [HUB_X/2 - 6, BOLT_Z],
+                  [-HUB_X*0.15,    BASE_Z], [HUB_X*0.15,   BASE_Z]])
+            translate([p[0], 0, p[1]])
+                rotate([90, 0, 0]) cylinder(h = HUB_Y + 4, d = M3, center = true);
     }
 }
 
@@ -132,12 +149,15 @@ module hub_half(side) {
             translate([0, side*40, 0]) cube([400, 80, 200], center = true);
         }
         if (side < 0)
-            for (x = [-33, 33]) translate([x, 0, -14]) rotate([90, 0, 0])
-                cylinder(h = 3*PEG_D, d = PEG_D + 0.3, center = true);
+            for (x = [-HUB_X*0.34, HUB_X*0.34]) translate([x, 0, BASE_Z])
+                rotate([90, 0, 0]) cylinder(h = 3*PEG_D, d = PEG_D + 0.3, center = true);
     }
+    // 페그는 분할면(Y=0) 에서 반대쪽 반쪽으로 튀어나가야 한다.
+    // 원본은 rotate 뒤에 translate 해서 축이 Y 로 새 나갔다 — 2026-09-02 정정
     if (side > 0)
-        for (x = [-33, 33]) translate([x, 0, PEG_D/2 - 0.01]) rotate([90, 0, 0])
-            translate([0, 0, -14]) cylinder(h = PEG_D, d = PEG_D, center = true);
+        for (x = [-HUB_X*0.34, HUB_X*0.34])
+            translate([x, -PEG_D/2 + 0.01, BASE_Z])
+                rotate([90, 0, 0]) cylinder(h = PEG_D, d = PEG_D, center = true);
 }
 
 // 프리즘 누름쇠 — 측정면을 가리지 않게 양 끝만 누른다
@@ -221,7 +241,7 @@ module preview() {
     color("SkyBlue", 0.55) prism(0);
     for (s = [-1, 1]) {
         color("Orange", 0.35) beam(s, -2, 250);
-        color("Gray", 0.25) on_arm(s, 46) translate([0, 0, -110])
+        color("Gray", 0.25) on_arm(s, PAD_OFF + 200) translate([0, 0, -100])
             cube([PAD_W, PAD_W, 200], center = true);
     }
 }

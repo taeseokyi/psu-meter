@@ -7,12 +7,14 @@
 > | [원리](https://taeseokyi.github.io/psu-meter/shadow-edge.html) | 그림자 경계의 정체 — 인터랙티브 |
 > | [조명계](https://taeseokyi.github.io/psu-meter/illumination.html) | 슬릿과 부채꼴 — 인터랙티브 |
 > | [도면](https://taeseokyi.github.io/psu-meter/figures.html) | 설계 도면 9장. 낡은 것 표시 |
+> | [측정 헤드](https://taeseokyi.github.io/psu-meter/head.html) | 도면 + 3D 조립도 — 인터랙티브 |
 > | [제작](https://taeseokyi.github.io/psu-meter/build.html) | 1:1 인쇄 조립 템플릿 |
 
 해수 수조의 염도를 **34 PSU 근처로 유지·모니터링**하기 위한 광학식 염도 측정 장치의 설계 자료입니다.
 전기전도도 방식이 아니라 **임계각 굴절계(critical-angle refractometer)** 방식이며, 하루 2회 무인 자동 측정을 목표로 합니다.
 
 > **현재 상태 — 설계 단계.** 계산과 도면은 완료되었으나 **실물 제작·검증은 아직 없습니다.**
+> **2026-09-02: 목표를 2단계로 분리했습니다 — 1단계 수동 전자식, 2단계 무인 자동화.**
 > 자세한 배경과 다음 단계는 [HANDOFF.md](HANDOFF.md)를 보세요.
 
 ---
@@ -50,8 +52,11 @@ BK7 프리즘 위에 시료를 올리고, 590 nm 단색 LED를 임계각으로 �
 | **[`HANDOFF.md`](HANDOFF.md)** | 왜 이렇게 설계했는지, 무엇이 미해결인지, 다음에 뭘 할지 |
 | **[`BOM.md`](BOM.md)** | 부품 목록과 조달처. 확인된 링크 / 검색어 / 주의 3단계로 구분 |
 | **[`PRISM_SOURCING.md`](PRISM_SOURCING.md)** | 프리즘 후보 비교와 선정 근거. **주문 전에 이것부터** |
-| **[`ILLUMINATION.md`](ILLUMINATION.md)** | 조명계 설계. 슬릿·입사창의 역할, 두 배치와 평면도 요구. **미결정 항목 있음** |
+| **[`ILLUMINATION.md`](ILLUMINATION.md)** | 조명계 설계. 슬릿·입사창의 역할, 두 배치와 평면도 요구, **차광·다크 프레임 규약(§5·§6)**. **미결정 항목 있음** |
 | **[`HOBBY_BUILD.md`](HOBBY_BUILD.md)** | 취미 제작 가이드. 3D 프린터 + 다이소 재료로 1순위 벤치 만들기 |
+| [`docs/datasheets/TSL1401CL.pdf`](docs/datasheets/TSL1401CL.pdf) | 검출기 데이터시트 (TAOS, 2011-07). **베어 칩으로 확정 — 2026-09-02** |
+| `src/budget_manual.py` | 1단계(수동) 계통오차 예산. 직선성·PRNU·온도·부채꼴 |
+| `src/profile_crb.py` | 프로파일 위치 추정의 정보 한계. 투과형 vs 반사형 |
 
 ### 도면 (`docs/figures/`)
 

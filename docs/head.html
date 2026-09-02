@@ -1,0 +1,1384 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="psu-meter 측정 헤드 — 프리즘 형상에서 팔 각도를 광선추적으로 풀어 도면과 3D 조립도를 만드는 페이지.">
+<meta name="color-scheme" content="light dark">
+<title>염도계 측정 헤드 — psu-meter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<style>
+/* ── tokens ─────────────────────────────────────────────────────────
+   팔레트는 저장소의 기존 도해 색(src/kfont.py, src/printed.py)을 그대로 씁니다.
+   AMB #E8901F 는 590 nm LED 그 자체 — 이 페이지의 강조색입니다.        */
+:root{
+  --paper:#EDF1F4; --sheet:#FFFFFF; --sunk:#E2E8ED;
+  --ink:#1A2430; --ink-2:#3D4C5A; --grey:#78899A; --faint:#A9B6C2;
+  --rule:#C7D2DB; --grid:#DDE5EB; --hair:#EEF2F5;
+  --deep:#065A82; --amb:#E8901F; --amb-soft:#F7E2C4;
+  --red:#C0392B; --grn:#1E8E3E;
+  --glass:#D9E9F2; --glass-e:#5F97B5; --alu:#C8CDD2; --shell:#3E4750;
+  --canvas:#12191F; --canvas-2:#1A232B; --canvas-grid:#26333E; --canvas-ink:#C6D3DC;
+  --shadow:0 1px 2px rgba(26,36,48,.06), 0 8px 24px -12px rgba(26,36,48,.20);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F161C; --sheet:#161F27; --sunk:#111920;
+    --ink:#DDE6EC; --ink-2:#AFBECA; --grey:#8497A5; --faint:#5F7182;
+    --rule:#2B3843; --grid:#212C36; --hair:#1B242C;
+    --deep:#63B4D8; --amb:#F0A43A; --amb-soft:#4A3517;
+    --red:#E4695B; --grn:#4FB86D;
+    --glass:#22404F; --glass-e:#6FA8C4; --alu:#5A646D; --shell:#7C8892;
+    --canvas:#0A1015; --canvas-2:#121A21; --canvas-grid:#1F2A34; --canvas-ink:#B6C4CE;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F161C; --sheet:#161F27; --sunk:#111920;
+  --ink:#DDE6EC; --ink-2:#AFBECA; --grey:#8497A5; --faint:#5F7182;
+  --rule:#2B3843; --grid:#212C36; --hair:#1B242C;
+  --deep:#63B4D8; --amb:#F0A43A; --amb-soft:#4A3517;
+  --red:#E4695B; --grn:#4FB86D;
+  --glass:#22404F; --glass-e:#6FA8C4; --alu:#5A646D; --shell:#7C8892;
+  --canvas:#0A1015; --canvas-2:#121A21; --canvas-grid:#1F2A34; --canvas-ink:#B6C4CE;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -14px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  font-weight:400; font-size:15px; line-height:1.68;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace; font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px; margin:0 auto; padding:0 24px}
+
+/* ── title block ────────────────────────────────────────────────── */
+header{border-bottom:1px solid var(--rule); background:var(--sheet)}
+.tb{display:grid; grid-template-columns:1fr auto; gap:28px; align-items:end; padding:38px 0 20px}
+h1{
+  margin:0; font-size:clamp(28px,4.2vw,44px); font-weight:600; letter-spacing:-.022em;
+  line-height:1.1; text-wrap:balance;
+}
+.sub{margin:10px 0 0; color:var(--grey); font-size:15px; max-width:56ch}
+.tb-grid{
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0;
+  border:1px solid var(--rule); font-size:11.5px; min-width:290px;
+}
+.tb-grid div{padding:7px 11px; border-right:1px solid var(--rule); border-bottom:1px solid var(--rule)}
+.tb-grid div:nth-child(2n){border-right:0}
+.tb-grid div:nth-last-child(-n+2){border-bottom:0}
+.tb-k{color:var(--faint); letter-spacing:.07em; text-transform:uppercase; font-size:10px; display:block}
+.tb-v{color:var(--ink); font-weight:500}
+
+/* ── param bar ──────────────────────────────────────────────────── */
+.bar{
+  position:sticky; top:0; z-index:40; background:var(--sheet);
+  border-bottom:1px solid var(--rule); box-shadow:0 1px 0 rgba(0,0,0,.02);
+}
+.bar-in{display:flex; flex-wrap:wrap; gap:18px 22px; align-items:flex-end; padding:14px 0}
+.presets{display:flex; gap:7px; flex-wrap:wrap}
+button.p{
+  font:500 12px/1 "IBM Plex Sans KR",sans-serif; padding:8px 12px; cursor:pointer;
+  background:var(--sheet); color:var(--ink-2); border:1px solid var(--rule); border-radius:2px;
+  transition:border-color .12s, color .12s, background .12s;
+}
+button.p:hover{border-color:var(--deep); color:var(--deep)}
+button.p[aria-pressed="true"]{background:var(--deep); border-color:var(--deep); color:#fff}
+button.p:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--amb); outline-offset:2px}
+.f{display:flex; flex-direction:column; gap:5px}
+.f label{font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint)}
+.f input{
+  width:78px; padding:6px 8px; border:1px solid var(--rule); border-radius:2px;
+  background:var(--paper); color:var(--ink); font:500 13px/1.2 "IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums;
+}
+.f input:hover{border-color:var(--grey)}
+
+/* ── sections ───────────────────────────────────────────────────── */
+section{padding:52px 0 8px}
+.eyebrow{
+  font:500 10.5px/1 "IBM Plex Mono",monospace; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--amb); margin:0 0 10px;
+}
+h2{margin:0 0 6px; font-size:24px; font-weight:600; letter-spacing:-.015em}
+h3{margin:34px 0 10px; font-size:15px; font-weight:600; letter-spacing:-.005em}
+.lede{margin:0 0 22px; color:var(--ink-2); max-width:68ch}
+p{margin:0 0 14px; max-width:68ch}
+
+/* ── sheet (drawing panel) ──────────────────────────────────────── */
+.sheet{
+  background:var(--sheet); border:1px solid var(--rule); border-radius:3px;
+  box-shadow:var(--shadow); overflow:hidden;
+}
+.sheet-hd{
+  display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap;
+  padding:11px 16px; border-bottom:1px solid var(--rule); background:var(--sunk);
+}
+.sheet-hd b{font-size:12.5px; font-weight:600}
+.sheet-hd span{font:400 11px/1 "IBM Plex Mono",monospace; color:var(--grey)}
+.sheet-bd{padding:10px 14px 14px; overflow-x:auto}
+.sheet-bd svg{display:block; width:100%; height:auto; min-width:640px}
+
+/* ── 3D ─────────────────────────────────────────────────────────── */
+#stage{width:100%; height:min(62vh,560px); min-height:380px; display:block; background:var(--canvas); cursor:grab}
+#stage:active{cursor:grabbing}
+.v-bar{display:flex; gap:7px; flex-wrap:wrap; padding:10px 14px; border-top:1px solid var(--rule); background:var(--sunk)}
+.legend{display:flex; flex-wrap:wrap; gap:6px 20px; padding:11px 16px; border-top:1px solid var(--rule); font-size:12px; color:var(--ink-2)}
+.legend i{display:inline-block; width:11px; height:11px; border-radius:2px; margin-right:7px; vertical-align:-1px}
+
+/* ── data table ─────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--rule); border-radius:3px; background:var(--sheet)}
+table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:520px}
+th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--hair)}
+thead th{
+  background:var(--sunk); font:500 10.5px/1.4 "IBM Plex Mono",monospace;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--grey); border-bottom:1px solid var(--rule);
+}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+td.n b{font-weight:600; color:var(--deep)}
+.tag{
+  display:inline-block; padding:1px 7px; border-radius:2px; font:500 10.5px/1.7 "IBM Plex Mono",monospace;
+  letter-spacing:.05em;
+}
+.tag.ok{background:var(--amb-soft); color:var(--amb)}
+.tag.warn{background:color-mix(in srgb,var(--red) 14%,transparent); color:var(--red)}
+
+/* ── callout ────────────────────────────────────────────────────── */
+.note{
+  border-left:2px solid var(--amb); background:var(--sheet); border-radius:0 3px 3px 0;
+  padding:15px 18px; margin:22px 0; font-size:14px; color:var(--ink-2);
+  border-top:1px solid var(--rule); border-right:1px solid var(--rule); border-bottom:1px solid var(--rule);
+}
+.note.alert{border-left-color:var(--red)}
+.note b{color:var(--ink)}
+.note p:last-child{margin-bottom:0}
+
+/* ── code ───────────────────────────────────────────────────────── */
+.code{
+  position:relative; background:var(--canvas); color:var(--canvas-ink); border-radius:3px;
+  border:1px solid var(--rule); overflow:hidden;
+}
+.code pre{
+  margin:0; padding:16px 18px; overflow-x:auto;
+  font:400 12.5px/1.72 "IBM Plex Mono",monospace; font-variant-numeric:tabular-nums;
+}
+.code .c{color:#7E93A3}
+.code .k{color:#F0A43A}
+.copy{
+  position:absolute; top:9px; right:9px; padding:5px 10px; cursor:pointer; border-radius:2px;
+  font:500 11px/1 "IBM Plex Mono",monospace; color:#B6C4CE;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14);
+}
+.copy:hover{background:rgba(255,255,255,.12); color:#fff}
+
+/* ── steps ──────────────────────────────────────────────────────── */
+ol.steps{counter-reset:s; list-style:none; margin:0; padding:0; display:grid; gap:2px}
+ol.steps li{
+  counter-increment:s; position:relative; padding:13px 16px 13px 52px;
+  background:var(--sheet); border:1px solid var(--rule); border-radius:3px; font-size:14px;
+}
+ol.steps li::before{
+  content:counter(s,decimal-leading-zero); position:absolute; left:16px; top:13px;
+  font:500 11px/1.6 "IBM Plex Mono",monospace; color:var(--amb); letter-spacing:.05em;
+}
+ol.steps b{font-weight:600}
+.grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px}
+
+footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet)}
+.foot{padding:26px 0 40px; font-size:12.5px; color:var(--grey)}
+.foot code{font-family:"IBM Plex Mono",monospace; color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+@media (max-width:720px){ .tb{grid-template-columns:1fr} .tb-grid{min-width:0} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap tb">
+    <div>
+      <p class="eyebrow">psu-meter · 측정 헤드</p>
+      <h1>임계각 굴절계 측정 헤드</h1>
+      <p class="sub">프리즘·LED·리니어 광검출기를 하나의 인쇄 허브에 고정하는 광학 벤치.
+        <b>반원 60×30×10 · TSL1401CL 베어 칩 · 허브 일체형 · 비대칭 팔(조명 40 / 검출 60) ·
+        본체 196 mm</b> 로 확정(2026-09-02)했고, 1단계는 <b>수동 전자식</b>입니다.
+        무인 자동화는 2단계입니다.
+        치수는 프리즘 형상에서 광선추적으로 다시 계산되므로 아래 값을 바꾸면 도면과 3D 조립도가 같이 갱신됩니다.</p>
+    </div>
+    <div class="tb-grid mono">
+      <div><span class="tb-k">단위</span><span class="tb-v">mm / deg</span></div>
+      <div><span class="tb-k">투영</span><span class="tb-v">제3각</span></div>
+      <div><span class="tb-k">기준</span><span class="tb-v" id="tb-src">segment_optics.py</span></div>
+      <div><span class="tb-k">개정</span><span class="tb-v">2026-09-02</span></div>
+    </div>
+  </div>
+</header>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="f" style="gap:7px">
+      <label>프리즘 프리셋</label>
+      <div class="presets" id="presets"></div>
+    </div>
+    <div class="f"><label>현 chord</label><input id="i-chord" type="number" step="1" min="20"></div>
+    <div class="f"><label>사지타 sag</label><input id="i-sag" type="number" step="1" min="5"></div>
+    <div class="f"><label>두께 t</label><input id="i-thick" type="number" step="0.5" min="3"></div>
+    <div class="f"><label>조명팔 mm</label><input id="i-arm" type="number" step="5" min="20"></div>
+    <div class="f"><label>검출팔 mm</label><input id="i-armd" type="number" step="5" min="20"></div>
+
+    <div class="f"><label>부채꼴 deg</label><input id="i-fan" type="number" step="0.5" min="0.5"></div>
+    <div class="f"><label>염도 PSU</label><input id="i-psu" type="number" step="1" min="0" max="40"></div>
+  </div>
+</div>
+
+<main class="wrap">
+
+<section>
+  <p class="eyebrow">기하</p>
+  <h2>프리즘이 팔 각도를 정한다</h2>
+  <p class="lede">측정점에서 임계각으로 출발한 주광선이 곡면을 어떻게 통과하느냐가 두 팔의 각도를 결정합니다.
+    <b>정확한 반원이면 곡률 중심이 곧 측정점</b>이라 광선이 곡면을 수직으로 지나 굴절이 없고, 팔 각도가 임계각의 여각과 정확히 같아집니다.
+    활꼴(사지타 &lt; 현/2)은 곡면에서 한 번 더 꺾입니다.</p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>항목</th><th>값</th><th>근거</th></tr></thead>
+      <tbody id="geo-body"></tbody>
+    </table>
+  </div>
+  <div class="note" id="shape-note"></div>
+</section>
+
+<section>
+  <p class="eyebrow">도면 1</p>
+  <h2>광학 배치</h2>
+  <p class="lede">측정점 M 을 원점으로 한 측면도입니다. 두 팔은 곡면 통과점을 지나는 직선으로 정의됩니다 —
+    <b>외부 광선은 측정점을 지나지 않습니다.</b> 곡면에서 꺾이기 때문입니다(활꼴일 때).</p>
+  <div class="sheet">
+    <div class="sheet-hd"><b>측면도 — 전체 배치</b><span id="sc-1">SCALE 1:4</span></div>
+    <div class="sheet-bd"><svg id="svg-layout" role="img" aria-label="측정 헤드 광학 배치 측면도"></svg></div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">3D</p>
+  <h2>조립도</h2>
+  <p class="lede">끌어서 회전, Ctrl+휠 또는 ＋／－ 로 확대. 허브는 반투명으로, 프리즘 포켓과 두 광로가 실제 단면 그대로 뚫려 있습니다.</p>
+  <div class="sheet">
+    <div class="sheet-hd"><b>측정 헤드 조립</b><span id="sc-3d">드래그 회전 · Ctrl+휠 확대</span></div>
+    <canvas id="stage"></canvas>
+    <div class="v-bar">
+      <button class="p" data-view="iso" aria-pressed="true">등각</button>
+      <button class="p" data-view="front">정면</button>
+      <button class="p" data-view="top">평면</button>
+      <button class="p" data-view="side">측면</button>
+      <button class="p" id="t-hub" aria-pressed="true">허브</button>
+      <button class="p" id="t-ray" aria-pressed="true">광선</button>
+      <button class="p" id="t-arm" aria-pressed="true">팔·부속</button>
+      <button class="p" id="t-base" aria-pressed="true">받침대</button>
+      <span style="flex:1"></span>
+      <button class="p" id="z-in" aria-label="확대">＋</button>
+      <button class="p" id="z-out" aria-label="축소">－</button>
+    </div>
+    <div class="legend">
+      <span><i style="background:#7FA8BE"></i>프리즘 (아크릴)</span>
+      <span><i style="background:#8D99A4"></i>인쇄 허브 · 덕트</span>
+      <span><i style="background:#E8901F"></i>광선 부채꼴 590 nm</span>
+      <span><i style="background:#2E7D46"></i>검출기 홀더 + TSL1401CL 칩</span>
+      <span><i style="background:#C0392B"></i>LED + 슬릿</span>
+      <span><i style="background:#20262B"></i>미광 조리개</span>
+      <span><i style="background:#E0913A"></i>착탈 칼라</span>
+      <span><i style="background:#7C8794"></i>받침대 · 수평조절</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">도면 2</p>
+  <h2>허브 단면</h2>
+  <p class="lede">클램셸 분할면(Y=0)에서 본 단면입니다. 이 단면을 프리즘 두께 방향으로 밀어낸 것이 허브 본체이고,
+    반으로 갈라 두 쪽으로 인쇄합니다.</p>
+  <div class="sheet">
+    <div class="sheet-hd"><b>허브 단면 — 분할면 Y=0</b><span id="sc-2">SCALE 1:2</span></div>
+    <div class="sheet-bd"><svg id="svg-hub" role="img" aria-label="허브 단면도"></svg></div>
+  </div>
+  <div class="note alert" id="bug-note">
+    <p><b>2026-09-02 정정.</b> <code class="mono">scad/optical_bench.scad</code> 의 프리즘 포켓 곡률 중심 부호가
+    뒤집혀 있었습니다(<code class="mono">P_CZ = P_SAG - P_R</code>). 포켓이 아래로 벌어지는 언더컷이 되어 프리즘이 들어가지
+    않고 인쇄도 안 되는 형상이었습니다. <code class="mono">P_CZ = P_R - P_SAG</code> 로 고쳤습니다 —
+    <b>곡률 중심은 측정면 위(시료 쪽)에 있습니다.</b></p>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">도면 3</p>
+  <h2>인쇄 부품</h2>
+  <p class="lede">허브만 정밀하면 됩니다. 나머지는 팔 축에 수직한 평평한 접착 패드에 붙이므로 관대합니다 —
+    다이소 전선몰딩이든 우드락 덕트든 상관없습니다.</p>
+  <div class="sheet">
+    <div class="sheet-hd"><b>부품 도면</b><span id="sc-4">SCALE 1:1.5</span></div>
+    <div class="sheet-bd"><svg id="svg-parts" role="img" aria-label="인쇄 부품 도면"></svg></div>
+  </div>
+  <h3>부품표</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>PART</th><th>이름</th><th>외형 mm</th><th>수량</th><th>비고</th></tr></thead>
+      <tbody id="parts-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">출력</p>
+  <h2>SCAD 상수</h2>
+  <p class="lede">아래를 <code class="mono">scad/optical_bench.scad</code> 상단에 그대로 덮어쓰면 지금 화면의 형상이 나옵니다.</p>
+  <div class="code">
+    <button class="copy" id="copy-btn">복사</button>
+    <pre id="scad-out"></pre>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">공정</p>
+  <h2>인쇄와 조립</h2>
+  <p class="lede">순서가 있습니다 — 허브를 먼저 붙여 굳힌 뒤에 팔을 답니다. 반대로 하면 두 팔의 상대 각도가 굳는 동안 틀어집니다.</p>
+  <ol class="steps">
+    <li><b>인쇄</b> — 허브 두 쪽은 <b>분할면을 바닥에 놓고</b> 인쇄합니다. 서포트가 필요 없고 포켓 정밀도가 가장 좋습니다.
+      PLA 0.2 mm 레이어, 벽 4겹, 충진 30 %. 플로우셀 단계부터는 PETG.</li>
+    <li><b>내면 흑화</b> — 광로와 포켓 안쪽을 <b>무광 검정</b>으로 칠합니다. 검정 필라멘트라도 표면이 번들거리면 되튑니다.</li>
+    <li><b>허브 접합</b> — 두 쪽을 페그로 맞추고 M3 로 조입니다. 이때 <b>프리즘을 넣은 채로</b> 조여 포켓이 프리즘에 맞게 자리잡게 합니다.</li>
+    <li><b>프리즘 안착</b> — 측정면이 허브 윗면보다 <b>낮게</b> 앉아야 합니다. 액적이 갇힐 자리가 됩니다. 누름쇠로 양 끝만 눌러 측정면을 가리지 않습니다.</li>
+    <li><b>받침대</b> — 본체를 바닥판에 얹고 <b>양쪽 홈턱</b>으로 물립니다.
+      블록 바닥이 바닥판 1 mm 위에 바로 앉으므로 라이저가 없습니다.
+      정밀 경로는 <b>책상 → 바닥판 → 본체</b> 까지고 여기서 끝납니다.
+      M4 수평조절 나사 3개로 <b>측정면을 수평</b>으로 맞추십시오 — 액적이 흘러내리면 안 됩니다.
+      삼각 지지라 네 발처럼 덜컹거리지 않고, 발 자리는 블록 중심에 맞춰 비대칭입니다.</li>
+    <li><b>조리개</b> — <b>인쇄로 들어갑니다.</b> 팔마다 3단이고 개구가 국소 빔 폭에 맞춰
+      커집니다. 따로 끼울 부품이 없고 비용도 0 입니다.</li>
+    <li><b>광원</b> — LED 돔을 사포로 갈아 평평하게, 유산지 확산판, 커터칼 날 2 장 슬릿. <b>집광형 LED 는 경계 자체를 만들지 못합니다.</b></li>
+    <li><b>검출기</b> — <b>TSL1401CL 베어 칩</b>을 뒤집어 패드가 위를 보게 놓고 5가닥만 붙입니다 (<code>SI CLK AO VDD GND</code>, 5·8번은 미연결). 패드 피치 2.5 mm. <b>0.1 µF 를 4번–6/7번 패드에 직접 걸쳐</b> 납땜하고, 자투리 FR4 에 에폭시로 고정해 선의 하중을 받게 합니다. <b>어레이 8.064 mm 의 길이 방향이 부채꼴 방향</b>에 오도록 — 90° 틀어지면 신호가 거의 없습니다.</li>
+    <li><b>차광 캡</b> — 시료를 덮는 뚜껑이 <b>이 장치의 차광 본체</b>입니다.
+      물로 들어온 외광은 검출기의 어두운 쪽만 비대칭으로 채워 경계를 밀어냅니다(§5-1).
+      내면은 무광 검정으로.
+      ⚠ <b>힌지는 닫는 힘이 받침대로 빠지게</b> 하십시오 — 누르는 힘이 프리즘–칩 사이
+      본체를 휘게 하면 그게 곧 비반복 오차입니다(칩 1 µm 이동 = 0.061 PSU).</li>
+  </ol>
+</section>
+
+<div class="note" style="margin-top:34px">
+  <p><b>넘어지지 않습니다.</b> 일체형이 되면서 본체가 낮아져(측정면 높이 47 mm)
+  무게중심이 더 내려갔습니다. 바닥판 220 × 70 이 가장 무거운 부품이므로
+  <b>충진을 아끼지 마십시오 — 무게가 곧 안정성입니다.</b> 수평조절 3점은 삼각 지지라
+  덜컹거리지 않고, 발 자리는 블록 중심에 맞춰 비대칭입니다.
+  (팔 100 mm 대칭 초안에서 계산한 값은 266 g · 무게중심 21 mm · 넘어짐 기울임 65° ·
+  넘어뜨리는 힘 5.6 N 이었고, 지금 형상은 더 유리합니다.)</p>
+  <p><b>거울로 접는 안은 검토했으나 채택하지 않았습니다.</b> 광로 160 mm 를 거울 2장으로
+  접으면 상자가 170 × 97 mm 로 줄고 성능도 유지되지만, 전면반사 거울 4장이 필요하고
+  (후면 유리 거울은 4 % 유령상이 19 px 어긋나 가짜 경계를 만듭니다) 미광 대책과 정렬이
+  복잡해집니다. 근거는 <code>ILLUMINATION.md</code> §2 에 남겨 뒀습니다.</p>
+  <p><b>목표 ±0.12 PSU 는 조건부로 유지됩니다.</b> 확정 형상(조명 40 / 검출 60)의 제곱합이
+  <b>0.048 PSU</b> 라 미광·표면굴곡·드리프트에 <b>0.108 PSU</b> 가 남습니다. 단
+  <b>세 가지가 전제</b>입니다 — (1) 2점 보정을 직선이 아니라 <b>알려진 곡선으로 피팅</b>
+  (직선이면 중간 염도에서 0.0837 PSU 틀리고, 이 값은 팔 길이와 무관합니다),
+  (2) <b>플랫필드 잔차 0.2 %</b> (PRNU ±4 % 를 그냥 두면 0.63 PSU),
+  (3) 온도 센서 — DS18B20 12비트로 0.0417 PSU 가 <b>최대 항목</b>이고, 0.01 °C 급이면
+  0.0067 로 떨어집니다. 재현: <code>src/budget_manual.py</code>.</p>
+  <p><b>팔이 비대칭인 이유</b> — 조명팔은 <b>액적 크기</b>가 정하고(패치 ∝ 조명팔 × 부채꼴),
+  검출팔은 <b>화소당 PSU 와 기계 안정성</b>이 정합니다. 요구가 서로 반대라 한쪽만 늘립니다.
+  검출팔 60 mm 에서 <b>칩이 1 µm 옆으로 미끄러지면 0.061 PSU</b> — 0.05 PSU 를 지키려면
+  <b>0.82 µm</b> 안이어야 합니다(40 mm 면 0.55 µm). 절대값이 아니라 보정과 시료 측정
+  사이의 상대 이동이고, <b>균일 열팽창은 0.0024 PSU/°C 로 무해</b>합니다.
+  ⚠ <b>그래서 뚜껑을 누르는 힘이 프리즘–칩 사이를 휘게 하면 안 됩니다</b> —
+  힌지를 받침대로 물려 하중 경로를 우회시키십시오.</p>
+  <p><b>남은 최대 미검증 위험은 표면 굴곡</b>입니다 (<code>ILLUMINATION.md</code> §3-2 —
+  0.5~2 mm 주기에 λ/20). 팔을 짧게 해도 나아지지 않지만, 부채꼴을 4.5° 로 줄여
+  패치가 5.9 mm 가 된 것이 완화입니다. 그리고 <b>스팬이 6 화소뿐</b>이라 그 사이의
+  불량화소 하나가 치명적입니다 — 검출·보간을 펌웨어에 넣어야 합니다.</p>
+  <p><b>실내등을 광원으로 쓰는 안은 안 됩니다.</b> 방 조명만으로도 눈으로는 경계가 보이지만
+  (그건 동공이 각도 선택기 역할을 해서입니다), 광원으로 쓰면 <b>시료 쪽 차광을 영원히 할 수
+  없습니다</b> — 위 9번 항목이 요구하는 바로 그것입니다. 하루 2회 무인 측정이라 밤에도,
+  뚜껑을 덮은 채로도 돌아야 합니다. 그 밖에 각도 상관 소멸(확산광에서는 경계가 아예 안 생김),
+  광대역 스펙트럼(백색이면 2.0 PSU 번짐, 게다가 불안정), 방의 각도별 휘도 분포 드리프트가
+  더 있습니다. 상세는 <code>ILLUMINATION.md</code> §5-6.</p>
+  <p><b>다만 조명팔은 없앨 수 있습니다.</b> 검출기를 볼록렌즈의 뒤초점면에 놓으면
+  위치가 곧 각도가 되어 조명이 "떨어진 슬릿"일 필요가 없어집니다 — LED 와 확산판을 프리즘
+  곡면에 바짝 붙일 수 있고, 경계가 12배 날카로워집니다(8.94 → 0.72 PSU, f 100 mm · 개구 3 mm).
+  대가는 렌즈 1장과 <b>프리즘 표면 λ/16 PV(37 nm) 평면도</b>인데, 사출 아크릴이 그걸
+  만족하는지는 아직 모릅니다. <b>판정은 이미 설계돼 있습니다</b> —
+  <code>HOBBY_BUILD.md</code> §6 슬릿 폭 스윕에서 경계 폭이 슬릿에 반비례하면 회절 지배라
+  렌즈가 유효합니다. <b>팔을 착탈식으로 만든 덕분에 허브를 다시 인쇄하지 않고 갈아끼울 수
+  있습니다.</b></p>
+  <p><b>미결정 하나가 남아 있습니다.</b> 조명팔에 콘덴서 렌즈를 넣느냐(배치 A)가 표면 평면도 요구를 정하는데
+  아직 안 정했습니다. 그래서 이 헤드는 <b>조명팔 접착 패드를 검출팔과 똑같이</b> 만들어 두었습니다 —
+  나중에 렌즈 홀더를 같은 자리에 끼워 넣으면 되고, 지금 결정하지 않아도 인쇄가 낭비되지 않습니다.</p>
+</div>
+
+</main>
+
+<footer><div class="wrap foot">
+  <p style="max-width:70ch">치수 출처 — <code>src/segment_optics.py</code>(광선추적·임계각), <code>src/illum_sim.py</code>(부채꼴·패치),
+  <code>scad/optical_bench.scad</code>(인쇄 형상). 이 페이지는 같은 광선추적을 이식해 실시간으로 다시 풉니다.</p>
+  <p style="max-width:70ch"><b>프리즘 두께만</b> 실물이 도착하면 실측해서 고치십시오.
+  검출기는 2026-09-02 에 <b>TSL1401CL 베어 칩</b>으로 확정했고, 패키지·어레이 치수는
+  데이터시트 Figure 10 값이라 실측이 필요 없습니다
+  (<code>docs/datasheets/TSL1401CL.pdf</code>). 나머지 치수는 계산값이고,
+  실물 제작·측정은 아직 없습니다.</p>
+</div></footer>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════
+   광학 — src/segment_optics.py 이식
+   ══════════════════════════════════════════════════════════════════ */
+const D = Math.PI/180, deg = r => r/D;
+const SW = [-1.50156e-6, 1.07085e-7, -4.27594e-5, -1.60476e-4, 1.39807]; // S=35
+const FW = [-1.97812e-6, 1.03223e-7, -8.58125e-6, -1.54834e-4, 1.38919]; // S=0
+
+function nWater(T, S, lam){
+  const f = c => c[0]*T*T + c[1]*lam*lam + c[2]*T + c[3]*lam + c[4];
+  const n0 = f(FW), n35 = f(SW);
+  return n0 + (n35-n0)*S/35;
+}
+/* 측정면 z=0, 유리는 z<0, 곡률 중심 (0, cz).  cz = R - sagitta > 0 이면 시료 쪽. */
+function traceRay(x0, th, R, cz, np){
+  const dx = Math.sin(th), dz = -Math.cos(th);
+  const ox = x0, oz = -cz;
+  const b = 2*(ox*dx + oz*dz), c = ox*ox + oz*oz - R*R;
+  const disc = b*b - 4*c;
+  if(disc < 0) return null;
+  const t = (-b + Math.sqrt(disc))/2;
+  const P = [x0 + t*dx, t*dz];
+  const nx = P[0]/R, nz = (P[1]-cz)/R;
+  const ci = dx*nx + dz*nz;
+  const si = Math.sqrt(Math.max(0, 1-ci*ci));
+  const st = np*si;
+  const inc = Math.acos(Math.min(1, Math.max(-1, ci)));
+  if(st >= 1) return {P, dir:null, inc};
+  const ct = Math.sqrt(1-st*st), k = np*ci - ct;
+  let rx = np*dx - k*nx, rz = np*dz - k*nz;
+  const m = Math.hypot(rx, rz);
+  return {P, dir:[rx/m, rz/m], inc};
+}
+
+const P0 = {T:26, lam:590, np:1.491, wall:3.5, fit:0.35, top:3, m3:3.4};
+/* TSL1401CL CL 패키지 — docs/datasheets/TSL1401CL.pdf Figure 10 */
+const CHIP = {L:9.4, W:3.0, H:1.2, arr:8.064, pitch:0.0635, npx:128, off:0.305};
+const PRESETS = [
+  {id:'half60', name:'반원 60×30×10  ★ 확정',  chord:60,  sag:30, thick:10},
+  {id:'seg60',  name:'활꼴 60×20×6',            chord:60,  sag:20, thick:6},
+  {id:'dr257',  name:'DR-257 반원 150×75×20',   chord:150, sag:75, thick:20}
+];
+let S = {chord:60, sag:30, thick:10, arm:40, armD:60, fan:4.5, psu:34, folds:0};
+/* 팔은 비대칭이다. 조명팔은 액적(=조명 패치)이, 검출팔은 화소당 PSU 가 정한다. */
+const armOf = sd => sd > 0 ? S.armD : S.arm;
+/* 빔 축 방향으로 팔 **끝을 넘어** 부품이 차지하는 길이.
+   조명측: 슬릿은 팔 끝(=L)에 있어야 하고 확산판·LED 가 그 뒤에 온다.
+   검출측: 칩이 팔 끝에 있고 배선 여유가 뒤에 온다. */
+const STACK = {
+  illum: [['슬릿 클램프', 6], ['유산지 확산판', 1], ['LED 홀더', 14]],
+  det:   [['칩 포켓 + 벽', 6], ['배선 여유', 6]]
+};
+const stackLen = k => STACK[k].reduce((t, r) => t + r[1], 0);
+const MIR_CLR = 7;   // 거울 앞뒤로 덕트를 띄우는 여유 [mm]
+
+function geom(){
+  const a = S.chord/2, h = S.sag;
+  const R = (a*a + h*h)/(2*h);
+  const cz = R - h;
+  const nw = nWater(P0.T, S.psu, P0.lam);
+  const tc = Math.asin(nw/P0.np);
+  const tr = traceRay(0, tc, R, cz, P0.np);
+  const armR = Math.atan2(-tr.dir[1], tr.dir[0]);
+  /* 광창은 검출팔 끝에서 가장 넓다 */
+  const winZ = Math.ceil(2*S.armD*Math.tan(S.fan/2*D)*10)/10;
+  const padW = Math.max(24, Math.ceil(Math.max(winZ, S.thick) + 2*P0.wall + 1));
+  /* ── 허브 일체형 ──────────────────────────────────────────────────
+     팔이 30 mm 급이면 블록이 팔 길이를 거의 다 먹으므로, 덕트·칼라·새들 없이
+     LED·검출기 자리를 블록 끝에 직접 파는 것이 단순하고 강합니다.
+     광로는 블록을 관통하는 채널이고, 조리개는 인쇄로 넣습니다. */
+  const hubY = +(S.thick + 2*P0.fit + 2*P0.wall).toFixed(2);
+  const hubZ = Math.ceil(h + 2*P0.wall + 5);
+  const endX1 = tr.P[0] + Math.max(S.arm, S.armD)*Math.cos(armR);
+  const endZ1 = tr.P[1] - Math.max(S.arm, S.armD)*Math.sin(armR);
+  /* 블록은 프리즘과 두 팔 끝을 모두 감싼다 */
+  /* 팔 축을 L 까지 갔을 때 필요한 블록 반폭 */
+  const xNeed = L => tr.P[0] + L*Math.cos(armR) + padW/2*Math.sin(armR) + P0.wall + 2;
+  const minHalf = a + P0.wall + 2.5;                 // 프리즘을 감싸는 최소
+  const reachI = S.arm  + stackLen('illum');         // 조명측 총 도달
+  const reachD = S.armD + stackLen('det');           // 검출측 총 도달
+  const hubL = Math.ceil(Math.max(minHalf, xNeed(reachI)));
+  const hubR = Math.ceil(Math.max(minHalf, xNeed(reachD)));
+  const hubX = hubL + hubR;
+  const padOff = 0, bossL = 0, padL = 0;
+  const bbX = hubX;
+  /* 인쇄 조리개 — 개구가 국소 빔 폭에 맞게 커진다 */
+  const stopsFor = arm => [0.34, 0.62, 0.88].map(f => ({
+    L: +(arm*f).toFixed(1),
+    ap: +(2*arm*f*Math.tan(S.fan/2*D) + 0.6).toFixed(2)
+  }));
+  const stops = stopsFor(S.armD), stopsI = stopsFor(S.arm);
+  const endX0 = tr.P[0] + S.arm*Math.cos(armR);
+  const endZ0 = tr.P[1] - S.arm*Math.sin(armR);
+  const nw0 = nWater(P0.T,0,P0.lam), nw35 = nWater(P0.T,35,P0.lam);
+  return {
+    a, h, R, cz, nw, tc, incR:tr.inc, armR,
+    ex:tr.P[0], ez:tr.P[1],
+    endX: tr.P[0] + S.arm*Math.cos(armR),
+    endZ: tr.P[1] - S.arm*Math.sin(armR),
+    winZ, padW, padL, padOff, bossL, hubX, hubL, hubR, hubY, hubZ, bbX,
+    stops, stopsI, stopsFor,
+    reachI, reachD, xNeedI: xNeed(reachI), xNeedD: xNeed(reachD), minHalf,
+    /* 받침대 — 블록 바닥보다 아래, 블록 중심에 맞춰 놓는다 */
+    baseZ: -(hubZ + 1), baseL: hubL + 12, baseR: hubR + 12,
+    baseW: hubX + 24, baseD: 70, baseT: 6,
+    bolts: [[-(hubL-6), -hubZ*0.74], [hubR-6, -hubZ*0.74],
+            [-hubL*0.32, -(h+6)],    [hubR*0.32, -(h+6)]],
+    xp: Math.sqrt(Math.pow(R+P0.fit,2) - cz*cz),
+    xw: Math.max(6, a - 5),
+    dtc: deg(Math.asin(nw35/P0.np) - Math.asin(nw0/P0.np)),
+    isSemi: Math.abs(cz) < 0.05
+  };
+}
+
+/* 접힌 팔 경로. 거울이 수직 평면이라 반사는 x 성분 반전뿐이다.
+   반환: 구간마다 {A, B, u(진행), v(면내 수직), L0, L1(누적 광로), last} */
+function legs(g0, s){
+  const n = Math.max(1, Math.round(S.folds) + 1), L = armOf(s)/n;
+  let p = [s*g0.ex, g0.ez], d = [Math.cos(g0.armR)*s, -Math.sin(g0.armR)];
+  const out = [];
+  for(let i = 0; i < n; i++){
+    const q = [p[0] + d[0]*L, p[1] + d[1]*L];
+    out.push({A:p, B:q, u:d.slice(), v:[-d[1], d[0]], L0:i*L, L1:(i+1)*L, last:i === n-1});
+    p = q; d = [-d[0], d[1]];
+  }
+  return out;
+}
+function boxSize(g0){
+  let xm = g0.a, zmin = -g0.h;
+  for(const s of [-1,1]) for(const g_ of legs(g0, s)){
+    xm = Math.max(xm, Math.abs(g_.A[0]), Math.abs(g_.B[0]));
+    zmin = Math.min(zmin, g_.A[1], g_.B[1]);
+  }
+  return {w: 2*(xm + g0.padW/2), h: P0.top - zmin + g0.padW/2};
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SVG 헬퍼
+   ══════════════════════════════════════════════════════════════════ */
+const NS = 'http://www.w3.org/2000/svg';
+const scaleLbl = k => 'SCALE ' + (k >= 1 ? k.toFixed(1)+' : 1' : '1 : '+(1/k).toFixed(1));
+function el(t, at){ const e = document.createElementNS(NS,t); for(const k in at) e.setAttribute(k, at[k]); return e; }
+function txt(x, y, s, o){
+  o = o || {};
+  const e = el('text', {x, y, 'font-size':o.size||9.5, 'text-anchor':o.anchor||'middle',
+    fill:o.fill||'var(--ink-2)', 'font-family':'"IBM Plex Mono", monospace',
+    'font-weight':o.weight||400, 'letter-spacing':o.ls||0});
+  if(o.halo !== false){ e.setAttribute('paint-order','stroke'); e.setAttribute('stroke','var(--sheet)'); e.setAttribute('stroke-width', o.halow||3.5); e.setAttribute('stroke-linejoin','round'); }
+  if(o.rot) e.setAttribute('transform', 'rotate('+o.rot+' '+x+' '+y+')');
+  e.textContent = s; return e;
+}
+function defsArrow(svg){
+  const d = el('defs');
+  ['a','a-r'].forEach((id,i) => {
+    const m = el('marker', {id, viewBox:'0 0 10 10', refX: i?10:0, refY:5, markerWidth:6, markerHeight:6,
+      orient:'auto-start-reverse', markerUnits:'strokeWidth'});
+    m.appendChild(el('path', {d:'M0,1 L10,5 L0,9 z', fill:'var(--grey)'}));
+    d.appendChild(m);
+  });
+  svg.appendChild(d);
+}
+/* 수평/수직 치수선 */
+function dimH(g, x1, x2, y, label, o){
+  o = o || {};
+  const c = 'var(--grey)';
+  g.appendChild(el('line', {x1, y1:y, x2, y2:y, stroke:c, 'stroke-width':.7,
+    'marker-start':'url(#a-r)', 'marker-end':'url(#a-r)'}));
+  if(o.ext){ [x1,x2].forEach((x,i) => g.appendChild(el('line',
+    {x1:x, y1:o.ext[i], x2:x, y2:y, stroke:c, 'stroke-width':.5, 'stroke-dasharray':'2 2'}))); }
+  g.appendChild(txt((x1+x2)/2, y - 4, label, {size:o.size||9}));
+}
+function dimV(g, y1, y2, x, label, o){
+  o = o || {};
+  const c = 'var(--grey)';
+  g.appendChild(el('line', {x1:x, y1, x2:x, y2, stroke:c, 'stroke-width':.7,
+    'marker-start':'url(#a-r)', 'marker-end':'url(#a-r)'}));
+  if(o.ext){ [y1,y2].forEach((y,i) => g.appendChild(el('line',
+    {x1:o.ext[i], y1:y, x2:x, y2:y, stroke:c, 'stroke-width':.5, 'stroke-dasharray':'2 2'}))); }
+  g.appendChild(txt(x - 4, (y1+y2)/2, label, {size:o.size||9, anchor:'middle', rot:-90}));
+}
+function leader(g, x, y, tx, ty, label, o){
+  o = o || {};
+  g.appendChild(el('path', {d:'M'+x+','+y+' L'+tx+','+ty, stroke:'var(--faint)', 'stroke-width':.7, fill:'none'}));
+  g.appendChild(el('circle', {cx:x, cy:y, r:1.5, fill:'var(--faint)'}));
+  g.appendChild(txt(tx, ty + (o.dy===undefined?-3.5:o.dy), label, {size:o.size||9, anchor:o.anchor||'middle', fill:o.fill||'var(--ink-2)', weight:o.weight||400}));
+}
+function gridBg(svg, W, H){
+  const d = el('defs'), p = el('pattern', {id:'gr', width:20, height:20, patternUnits:'userSpaceOnUse'});
+  p.appendChild(el('path', {d:'M20 0 L0 0 0 20', fill:'none', stroke:'var(--grid)', 'stroke-width':.5}));
+  d.appendChild(p); svg.appendChild(d);
+  svg.appendChild(el('rect', {width:W, height:H, fill:'url(#gr)', opacity:.55}));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   도면 1 — 광학 배치
+   ══════════════════════════════════════════════════════════════════ */
+function drawLayout(){
+  const g0 = geom(), svg = document.getElementById('svg-layout');
+  svg.textContent = '';
+  const W = 1120, H = 470;
+  svg.setAttribute('viewBox', '0 0 '+W+' '+H);
+  gridBg(svg, W, H); defsArrow(svg);
+
+  const bx = boxSize(g0);
+  const spanX = Math.max(bx.w, g0.baseW) + 90;
+  const spanZ = (P0.top - g0.baseZ + g0.baseT) + 96;
+  const k = Math.min((W-150)/spanX, (H-120)/spanZ);
+  const ox = W/2, oz = 78;
+  const X = x => ox + x*k, Z = z => oz - z*k;
+  document.getElementById('sc-1').textContent = scaleLbl(k);
+
+  const g = el('g'); svg.appendChild(g);
+
+  /* 유리 안쪽 부채꼴 — 측정점에서 곡면까지 */
+  const fanHalf = S.fan/2*D, tfh = Math.tan(fanHalf);
+  for(const sd of [-1, 1]){
+    const ep = [];
+    for(const dth of [-fanHalf, fanHalf]){
+      const tr = traceRay(0, g0.tc + dth, g0.R, g0.cz, P0.np);
+      if(tr && tr.dir) ep.push(tr.P);
+    }
+    if(ep.length === 2)
+      g.appendChild(el('polygon', {points:[[0,0], ep[0], ep[1]].map(q => X(sd*q[0])+','+Z(q[1])).join(' '),
+        fill:'var(--amb)', opacity:.16}));
+
+    const L = legs(g0, sd)[0], u = L.u, v = L.v, AR = armOf(sd), ST = g0.stopsFor(AR);
+    const Pt = (t, w, sg) => [L.A[0] + u[0]*t + v[0]*sg*w/2, L.A[1] + u[1]*t + v[1]*sg*w/2];
+    /* 광선 밴드 */
+    const q = [Pt(0, 0, 1), Pt(AR, 2*AR*tfh, 1), Pt(AR, 2*AR*tfh, -1), Pt(0, 0, -1)];
+    g.appendChild(el('polygon', {points:q.map(t => X(t[0])+','+Z(t[1])).join(' '),
+      fill:'var(--amb)', opacity:.16}));
+    g.appendChild(el('line', {x1:X(L.A[0]), y1:Z(L.A[1]), x2:X(L.B[0]), y2:Z(L.B[1]),
+      stroke:'var(--amb)', 'stroke-width':1.6}));
+    /* 인쇄 조리개 */
+    ST.forEach(st => {
+      const chW = 2*AR*tfh + 0.6;
+      const a1 = Pt(st.L, chW, 1), a2 = Pt(st.L, st.ap, 1);
+      const b1 = Pt(st.L, chW, -1), b2 = Pt(st.L, st.ap, -1);
+      g.appendChild(el('line', {x1:X(a1[0]), y1:Z(a1[1]), x2:X(a2[0]), y2:Z(a2[1]),
+        stroke:'var(--shell)', 'stroke-width':2.6}));
+      g.appendChild(el('line', {x1:X(b1[0]), y1:Z(b1[1]), x2:X(b2[0]), y2:Z(b2[1]),
+        stroke:'var(--shell)', 'stroke-width':2.6}));
+    });
+    /* 팔 끝 부품 */
+    const cc = Pt(AR + 6, 0, 0);
+    g.appendChild(el('rect', {x:X(cc[0]) - 8, y:Z(cc[1]) - 12, width:16, height:24, rx:1.5,
+      fill: sd > 0 ? 'var(--grn)' : 'var(--red)', opacity:.9,
+      transform:'rotate('+(sd>0 ? deg(g0.armR) : -deg(g0.armR))+' '+X(cc[0])+' '+Z(cc[1])+')'}));
+  }
+
+  /* 허브 블록 외형 — 일체형이라 이것이 장치 본체다 */
+  g.appendChild(el('polygon', {points: hubProfile(g0).map(t => X(t[0])+','+Z(t[1])).join(' '),
+    fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.2, opacity:.30}));
+
+  /* 받침대 — 바닥판 + 홈턱 + 수평조절 3점 (일체형이라 라이저·새들 없음) */
+  {
+    const bz = g0.baseZ, bw = g0.baseW;
+    g.appendChild(el('rect', {x:X(-g0.baseL), y:Z(bz), width:bw*k, height:g0.baseT*k,
+      fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
+    /* 블록을 물어 세우는 홈턱 — 블록 바닥이 바닥판 1 mm 위에 바로 앉는다 */
+    for(const sd of [-1, 1]){
+      const xg = (g0.hubR - g0.hubL)/2 + sd*(g0.hubY/2 + 2.8);
+      g.appendChild(el('rect', {x:X(xg) - 2.5*k, y:Z(bz + 10),
+        width:5*k, height:10*k, fill:'var(--alu)', stroke:'var(--ink-2)',
+        'stroke-width':1, opacity:.9}));
+    }
+    /* 수평 조절 나사 3개 */
+    const fxs = [-g0.baseL*0.84, (g0.baseR - g0.baseL)/2, g0.baseR*0.84];
+    fxs.forEach(x => {
+      g.appendChild(el('path', {d:'M'+X(x)+','+Z(bz - g0.baseT)+' v'+(7*k),
+        stroke:'var(--deep)', 'stroke-width':2.4}));
+      g.appendChild(el('circle', {cx:X(x), cy:Z(bz - g0.baseT) + 7*k, r:2.6,
+        fill:'var(--deep)'}));
+    });
+    leader(g, X(fxs[2]), Z(bz - g0.baseT) + 7*k, X(fxs[2]) + 6, Z(bz - g0.baseT) + 7*k + 20,
+      'M4 수평조절 ×3  (삼각 지지 — 흔들림 없음)', {anchor:'end', dy:0});
+    dimV(g, Z(0), Z(bz), 66, '측정면 높이 '+(-g0.baseZ), {ext:[X(0), X(-g0.baseL)]});
+  }
+
+  /* 측정점 · 액적 */
+  g.appendChild(el('path', {d:'M'+X(-g0.a*.55)+','+Z(0)+' L'+X(g0.a*.55)+','+Z(0),
+    stroke:'var(--deep)', 'stroke-width':1.4}));
+  g.appendChild(el('path', {d:'M'+X(-g0.a*.30)+','+Z(0)+' a '+(g0.a*.30*k)+' '+(g0.a*.16*k)+' 0 0 1 '+(g0.a*.60*k)+' 0 z',
+    fill:'#8FC6DE', opacity:.6}));
+  g.appendChild(el('circle', {cx:X(0), cy:Z(0), r:2.6, fill:'var(--deep)'}));
+  g.appendChild(txt(X(0), Z(0) - 9, 'M', {size:11, weight:600, fill:'var(--deep)'}));
+
+  /* 법선 · 임계각 */
+  g.appendChild(el('line', {x1:X(0), y1:Z(0), x2:X(0), y2:Z(-g0.h*0.75),
+    stroke:'var(--faint)', 'stroke-width':.7, 'stroke-dasharray':'4 3'}));
+  const rr = Math.min(46, g0.h*k*0.6);
+  g.appendChild(el('path', {d:'M'+X(0)+','+(Z(0)+rr)+' A '+rr+' '+rr+' 0 0 0 '+
+    (X(0)+rr*Math.sin(g0.tc))+','+(Z(0)+rr*Math.cos(g0.tc)),
+    fill:'none', stroke:'var(--deep)', 'stroke-width':.9}));
+  g.appendChild(txt(X(0) + rr*0.62, Z(0) + rr*0.80, 'θc '+deg(g0.tc).toFixed(2)+'°',
+    {size:9.5, anchor:'start', fill:'var(--deep)', weight:500}));
+
+  /* 곡률 중심 */
+  if(!g0.isSemi){
+    g.appendChild(el('path', {d:'M'+(X(0)-6)+','+Z(g0.cz)+' h12 M'+X(0)+','+(Z(g0.cz)-6)+' v12',
+      stroke:'var(--grey)', 'stroke-width':.8}));
+    leader(g, X(0), Z(g0.cz), X(0) - 70, Z(g0.cz) - 16, 'C  곡률중심 z=+'+g0.cz.toFixed(1), {anchor:'middle'});
+  } else {
+    g.appendChild(txt(X(0) + 46, Z(0) - 22, 'C ≡ M  (곡률중심 = 측정점)', {size:9, anchor:'start', fill:'var(--grn)', weight:500}));
+  }
+
+  /* 출사점 */
+  for(const s of [-1,1]){
+    g.appendChild(el('circle', {cx:X(s*g0.ex), cy:Z(g0.ez), r:2.4, fill:'var(--amb)'}));
+  }
+  leader(g, X(g0.ex), Z(g0.ez), X(g0.ex) + 34, Z(g0.ez) - 30,
+    'E ('+g0.ex.toFixed(1)+', '+g0.ez.toFixed(1)+')', {anchor:'start', dy:0});
+
+  /* 팔 각도 */
+  const ar = 62;
+  g.appendChild(el('line', {x1:X(g0.ex), y1:Z(g0.ez), x2:X(g0.ex) + ar + 16, y2:Z(g0.ez),
+    stroke:'var(--faint)', 'stroke-width':.6, 'stroke-dasharray':'4 3'}));
+  g.appendChild(el('path', {d:'M'+(X(g0.ex)+ar)+','+Z(g0.ez)+' A '+ar+' '+ar+' 0 0 1 '+
+    (X(g0.ex)+ar*Math.cos(g0.armR))+','+(Z(g0.ez)+ar*Math.sin(g0.armR)),
+    fill:'none', stroke:'var(--red)', 'stroke-width':1}));
+  g.appendChild(txt(X(g0.ex) + ar + 6, Z(g0.ez) + ar*Math.sin(g0.armR)/2 + 4,
+    deg(g0.armR).toFixed(2)+'°', {size:10, anchor:'start', fill:'var(--red)', weight:600}));
+
+  /* 사이각 */
+  g.appendChild(txt(X(0), Z(P0.top) - 26, '두 팔 사이각  '+(180 - 2*deg(g0.armR)).toFixed(2)+'°',
+    {size:10.5, fill:'var(--red)', weight:600}));
+
+  /* 치수 */
+  const yBase = H - 40, LGr = legs(g0, 1), LAST = LGr[LGr.length-1];
+  dimH(g, X(-g0.baseL), X(g0.baseR), yBase, '바닥판 '+g0.baseW+' × '+g0.baseD, {size:10});
+  dimH(g, X(-g0.a), X(g0.a), yBase - 30, '현  '+S.chord.toFixed(0), {ext:[Z(0)+4, Z(0)+4]});
+  dimH(g, X(LGr[0].A[0]), X(LGr[0].B[0]), yBase - 58,
+    LGr.length > 1 ? '한 구간 '+(S.arm/LGr.length).toFixed(1)+' × '+LGr.length+'구간 = 광로 '+S.arm
+                   : '검출팔  '+S.armD+' (축)', {size:9.5});
+  dimV(g, Z(0), Z(-g0.h), W - 30, '사지타 '+S.sag.toFixed(0), {ext:[X(0), X(0)]});
+  dimV(g, Z(P0.top), Z(g0.baseZ - g0.baseT), 40,
+    '전체 높이 '+(P0.top - g0.baseZ + g0.baseT), {});
+
+  /* 라벨 */
+  const endOf = sd => { const L = legs(g0, sd); const t = L[L.length-1];
+    return [t.B[0] + t.u[0]*9, t.B[1] + t.u[1]*9]; };
+  const eL = endOf(-1), eR = endOf(1);
+  g.appendChild(txt(X(eL[0]) + 26, Z(eL[1]) - 26, 'LED 590 nm + 확산판 + 슬릿 0.3',
+    {size:9.5, anchor:'middle', fill:'var(--red)', weight:500}));
+  g.appendChild(txt(X(eR[0]) - 26, Z(eR[1]) - 26, 'TSL1401CL 베어 칩 128 px',
+    {size:9.5, anchor:'middle', fill:'var(--grn)', weight:500}));
+  for(const [sd, name] of [[-1,'조명팔'],[1,'검출팔']]){
+    const L0 = legs(g0, sd)[0], t = (L0.L1 - L0.L0)*0.55;
+    const drop = -(g0.padW/2 + 3)/Math.cos(g0.armR);
+    g.appendChild(txt(X(L0.A[0] + L0.u[0]*t), Z(L0.A[1] + L0.u[1]*t - drop),
+      name + '  광로 ' + S.arm + ' mm',
+      {size:10, fill:'var(--grey)', ls:'.08em', rot: sd*deg(g0.armR)}));
+  }
+  g.appendChild(txt(20, 22, '측면도 · Y=0 단면 · 원점 M', {size:9.5, anchor:'start', fill:'var(--faint)', ls:'.08em'}));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   도면 2 — 허브 단면
+   ══════════════════════════════════════════════════════════════════ */
+function hubProfile(g0){
+  /* 바깥 윤곽: 포켓 입구와 측정창 턱을 포함한 하나의 닫힌 경로 */
+  const HL = g0.hubL, HR = g0.hubR, HZ = g0.hubZ, TP = P0.top, XP = g0.xp, XW = g0.xw;
+  const pts = [[-HL,-HZ],[HR,-HZ],[HR,TP],[XW,TP],[XW,0],[XP,0]];
+  const Rf = g0.R + P0.fit;
+  const aS = Math.atan2(-g0.cz, XP), aE = Math.atan2(-g0.cz, -XP);
+  for(let i = 0; i <= 80; i++){
+    const t = aS + (aE - aS - 2*Math.PI)*(i/80);
+    const p = [Rf*Math.cos(t), g0.cz + Rf*Math.sin(t)];
+    if(p[1] <= 0.01) pts.push(p);
+  }
+  pts.push([-XP,0],[-XW,0],[-XW,TP],[-HL,TP]);
+  return pts;
+}
+function drawHub(){
+  const g0 = geom(), svg = document.getElementById('svg-hub');
+  svg.textContent = '';
+  const W = 1120, H = 420;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  gridBg(svg, W, H); defsArrow(svg);
+  const k = Math.min((W-230)/(g0.bbX+50), (H-150)/(g0.hubZ+P0.top+46));
+  const ox = W/2 - 30, oz = 72;
+  const X = x => ox + x*k, Z = z => oz - z*k;
+  document.getElementById('sc-2').textContent = scaleLbl(k);
+  const g = el('g'); svg.appendChild(g);
+
+  /* 본체 */
+  g.appendChild(el('polygon', {points: hubProfile(g0).map(p => X(p[0])+','+Z(p[1])).join(' '),
+    fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.3, opacity:.85}));
+
+  /* 광로 채널 (블록을 관통) + 인쇄 조리개 + 끝 자리 */
+  for(const sd of [-1,1]){
+    const ux = Math.cos(g0.armR)*sd, uz = -Math.sin(g0.armR), vx = -uz, vz = ux;
+    const Pt = (L, w, sg) => [ sd*g0.ex + ux*L + vx*sg*w/2, g0.ez + uz*L + vz*sg*w/2 ];
+    const AR = armOf(sd), chW = 2*AR*Math.tan(S.fan/2*D) + 0.6;
+    const q = [Pt(-3, chW, 1), Pt(AR + 1, chW, 1),
+               Pt(AR + 1, chW, -1), Pt(-3, chW, -1)];
+    g.appendChild(el('polygon', {points:q.map(t => X(t[0])+','+Z(t[1])).join(' '),
+      fill:'var(--sheet)', stroke:'var(--ink-2)', 'stroke-width':1}));
+    g0.stopsFor(AR).forEach(st => {
+      [1,-1].forEach(sg => {
+        const p1 = Pt(st.L, chW, sg), p2 = Pt(st.L, st.ap, sg);
+        g.appendChild(el('line', {x1:X(p1[0]), y1:Z(p1[1]), x2:X(p2[0]), y2:Z(p2[1]),
+          stroke:'var(--shell)', 'stroke-width':2.8}));
+      });
+    });
+    /* 끝 자리 (LED / 칩) */
+    const e1 = Pt(AR, chW + 6, 1), e2 = Pt(AR, chW + 6, -1);
+    g.appendChild(el('line', {x1:X(e1[0]), y1:Z(e1[1]), x2:X(e2[0]), y2:Z(e2[1]),
+      stroke: sd > 0 ? 'var(--grn)' : 'var(--red)', 'stroke-width':3.4}));
+  }
+
+  /* 프리즘 (파선) */  /* 프리즘 (파선) */
+  const arc = [];
+  const a0 = Math.atan2(-g0.cz, g0.a), a1 = Math.atan2(-g0.cz, -g0.a);
+  for(let i = 0; i <= 80; i++){
+    const t = a0 + (a1 - a0 - 2*Math.PI)*(i/80);
+    const p = [g0.R*Math.cos(t), g0.cz + g0.R*Math.sin(t)];
+    if(p[1] <= 0.01) arc.push(p);
+  }
+  g.appendChild(el('polygon', {points:[[-g0.a,0],[g0.a,0]].concat(arc).map(p => X(p[0])+','+Z(p[1])).join(' '),
+    fill:'var(--glass)', stroke:'var(--glass-e)', 'stroke-width':1, 'stroke-dasharray':'6 3', opacity:.55}));
+
+  /* M3 — 포켓과 광로를 모두 피한 자리 */
+  g0.bolts.forEach(b => {
+    g.appendChild(el('circle', {cx:X(b[0]), cy:Z(b[1]), r:Math.max(2, P0.m3/2*k), fill:'none',
+      stroke:'var(--ink-2)', 'stroke-width':.9}));
+    g.appendChild(el('path', {d:'M'+(X(b[0])-5)+','+Z(b[1])+' h10 M'+X(b[0])+','+(Z(b[1])-5)+' v10',
+      stroke:'var(--faint)', 'stroke-width':.5}));
+  });
+  leader(g, X(g0.bolts[3][0]), Z(g0.bolts[3][1]), X(g0.hubR) + 30, Z(-g0.hubZ) - 4,
+    'M3 관통 ×4 — 프리즘을 넣은 채로 조인다', {anchor:'start', dy:0});
+
+  /* 치수 */
+  const yB = H - 40;
+  dimH(g, X(-g0.bbX/2), X(g0.bbX/2), yB, '보스 포함 전체  '+Math.ceil(g0.bbX), {size:10});
+  dimH(g, X(-g0.hubL), X(g0.hubR), yB - 30,
+    '블록 '+g0.hubX+'  (조명측 '+g0.hubL+' / 검출측 '+g0.hubR+')',
+    {ext:[Z(-g0.hubZ)+6, Z(-g0.hubZ)+6]});
+  dimH(g, X(-g0.xp), X(g0.xp), yB - 60, '포켓 입구  '+(2*g0.xp).toFixed(1)+'  (편측 여유 '+P0.fit+')', {});
+  dimH(g, X(-g0.xw), X(g0.xw), oz - 26, '측정창  '+(2*g0.xw).toFixed(0), {ext:[Z(P0.top)-2, Z(P0.top)-2]});
+  dimV(g, Z(P0.top), Z(-g0.hubZ), W - 118, '허브 높이  '+(g0.hubZ+P0.top), {ext:[X(g0.hubR), X(g0.hubR)]});
+  dimV(g, Z(P0.top), Z(0), W - 60, '턱 '+P0.top, {ext:[X(g0.xw), X(g0.xw)]});
+  dimV(g, Z(0), Z(-g0.h), 44, '사지타 '+S.sag, {ext:[X(0), X(0)]});
+
+  const mid = S.arm*0.5;
+  leader(g, X(-(g0.ex + mid*Math.cos(g0.armR))), Z(g0.ez - mid*Math.sin(g0.armR)),
+    X(-g0.hubL) + 4, Z(g0.ez) - 30,
+    '광로 채널 '+g0.winZ+' × '+(S.thick-0.5).toFixed(1)+' (관통)', {anchor:'start'});
+  const st1 = g0.stops[1];
+  leader(g, X(g0.ex + st1.L*Math.cos(g0.armR)), Z(g0.ez - st1.L*Math.sin(g0.armR)),
+    X(g0.hubR) - 30, Z(g0.ez) - 34,
+    '인쇄 조리개 3단  개구 '+g0.stops.map(t => t.ap).join(' / '),
+    {anchor:'start', fill:'var(--deep)', weight:500});
+
+  g.appendChild(txt(20, 22, '단면 A-A · 분할면 Y=0 · 두께 방향 '+g0.hubY+' 로 밀어냄',
+    {size:9.5, anchor:'start', fill:'var(--faint)', ls:'.08em'}));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   도면 3 — 부품
+   ══════════════════════════════════════════════════════════════════ */
+function drawParts(){
+  const g0 = geom(), svg = document.getElementById('svg-parts');
+  svg.textContent = '';
+  const W = 1240, H = 246;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  gridBg(svg, W, H); defsArrow(svg);
+  const g = el('g'); svg.appendChild(g);
+  const k = 1.5;
+  document.getElementById('sc-4').textContent = scaleLbl(k);
+
+  function cell(cx, title, w, h, draw, note){
+    const gg = el('g', {transform:'translate('+cx+',104)'}); g.appendChild(gg);
+    gg.appendChild(txt(0, -h/2*k - 30, title, {size:10.5, weight:600, fill:'var(--ink)', ls:'.02em'}));
+    draw(gg, k);
+    dimH(gg, -w/2*k, w/2*k, h/2*k + 26, w.toFixed(1), {ext:[h/2*k, h/2*k], size:9});
+    dimV(gg, -h/2*k, h/2*k, w/2*k + 24, h.toFixed(1), {ext:[w/2*k, w/2*k], size:9});
+    gg.appendChild(txt(0, h/2*k + 54, note, {size:9, fill:'var(--grey)'}));
+  }
+  const PW = g0.padW, WZ = g0.winZ, TH = S.thick;
+
+  /* LED 홀더 */
+  cell(140, 'led — LED + 확산판 홀더', PW, 18, (gg, k) => {
+    gg.appendChild(el('rect', {x:-PW/2*k, y:-9*k, width:PW*k, height:18*k, rx:1.5,
+      fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
+    gg.appendChild(el('rect', {x:-5.25/2*k, y:-9*k, width:5.25*k, height:10*k,
+      fill:'var(--sheet)', stroke:'var(--red)', 'stroke-width':1}));
+    gg.appendChild(el('rect', {x:-PW/2*k, y:1.6*k, width:PW*k, height:0.7*k, fill:'var(--amb)', opacity:.8}));
+    gg.appendChild(el('rect', {x:-(WZ+2)/2*k, y:3*k, width:(WZ+2)*k, height:6*k,
+      fill:'var(--sheet)', stroke:'var(--ink-2)', 'stroke-width':1}));
+    leader(gg, 0, -4*k, -PW/2*k - 20, -4*k, 'ø5.25 LED 압입', {anchor:'end', dy:3});
+    leader(gg, PW/2*k - 6, 2*k, PW/2*k + 20, -1*k, '유산지 슬롯 0.7', {anchor:'start', dy:3});
+  }, 'LED 돔은 사포로 갈아 평평하게');
+
+  /* 슬릿 클램프 */
+  cell(400, 'slit + slit_lid — 슬릿 클램프', 44, 34, (gg, k) => {
+    gg.appendChild(el('rect', {x:-22*k, y:-17*k, width:44*k, height:34*k, rx:1.5,
+      fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
+    [-1,1].forEach(s => gg.appendChild(el('rect', {x:-22*k, y:(s*(9/2+1.5) - 9/2)*k, width:44*k, height:9*k,
+      fill:'var(--sunk)', stroke:'var(--red)', 'stroke-width':1, 'stroke-dasharray':'4 2'})));
+    gg.appendChild(el('rect', {x:-(WZ+3)/2*k, y:-1.5*k, width:(WZ+3)*k, height:3*k, fill:'var(--amb)', opacity:.85}));
+    [-16,16].forEach(x => gg.appendChild(el('circle', {cx:x*k, cy:0, r:P0.m3/2*k,
+      fill:'var(--sheet)', stroke:'var(--ink-2)', 'stroke-width':.9})));
+    leader(gg, 0, 8*k, 0, 17*k + 14, '커터칼 날 2장 · 심 = 복사용지 N장 × 0.10', {anchor:'middle', dy:0});
+  }, '슬릿폭 0.2~0.3 권장 · 종이 장수로 스윕');
+
+  /* 센서 받침 — TSL1401CL 베어 칩 포켓 (정면에서 본 것) */
+  const SH = Math.ceil(CHIP.L + 2*P0.wall + 2);
+  cell(700, 'sensor — TSL1401CL 칩 포켓', PW, SH, (gg, k) => {
+    gg.appendChild(el('rect', {x:-PW/2*k, y:-SH/2*k, width:PW*k, height:SH*k, rx:1.5,
+      fill:'var(--alu)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
+    /* 칩 포켓 9.4 × 3.0 — 어레이 길이 방향이 부채꼴 방향 */
+    gg.appendChild(el('rect', {x:-CHIP.W/2*k, y:-CHIP.L/2*k, width:CHIP.W*k, height:CHIP.L*k,
+      fill:'var(--sheet)', stroke:'var(--grn)', 'stroke-width':1.3}));
+    /* 어레이 8.064 */
+    gg.appendChild(el('rect', {x:-0.4*k + CHIP.off*k, y:-CHIP.arr/2*k, width:0.8*k, height:CHIP.arr*k,
+      fill:'var(--amb)', opacity:.85}));
+    /* 배선 홈 */
+    gg.appendChild(el('rect', {x:-2.2*k, y:CHIP.L/2*k, width:4.4*k, height:(SH/2 - CHIP.L/2)*k,
+      fill:'var(--sheet)', stroke:'var(--ink-2)', 'stroke-width':.9, 'stroke-dasharray':'3 2'}));
+    leader(gg, CHIP.W/2*k, -CHIP.L/4*k, PW/2*k + 22, -CHIP.L/2*k,
+      '포켓 ' + CHIP.L + ' × ' + CHIP.W + ' × ' + CHIP.H, {anchor:'start', dy:3});
+    leader(gg, CHIP.off*k, CHIP.arr/4*k, -PW/2*k - 22, CHIP.arr/3*k,
+      '어레이 ' + CHIP.arr + ' (중심 +' + CHIP.off + ')', {anchor:'end', dy:3});
+    leader(gg, 0, SH/2*k - 6, 0, SH/2*k + 16, '선 5가닥 + 0.1 µF', {anchor:'middle', dy:0});
+  }, '어레이 길이 방향 = 부채꼴 방향. 90° 틀면 신호 없음');
+
+  /* 조리개 */
+  cell(940, 'baffle — 미광 조리개', PW - 1.5, PW - 1.5, (gg, k) => {
+    const o = (PW - 1.5)/2*k;
+    gg.appendChild(el('rect', {x:-o, y:-o, width:2*o, height:2*o, rx:1,
+      fill:'var(--shell)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
+    gg.appendChild(el('rect', {x:-WZ/2*k, y:-TH/2*k, width:WZ*k, height:TH*k,
+      fill:'var(--sheet)', stroke:'var(--amb)', 'stroke-width':1.2}));
+    leader(gg, WZ/2*k, 0, o + 22, -6, '개구 '+WZ+' × '+TH, {anchor:'start', dy:3});
+  }, '두께 2 · 팔마다 2~3장 · 내면 무광 검정');
+
+  /* 차광 캡 — 수동 조작이라 여닫는 뚜껑 */
+  const KW = S.chord + 2*P0.wall, KH = 12;
+  cell(1065, 'cap — 차광 캡 (시료 덮개)', KW/4, KH, (gg, k) => {
+    const w = KW/4*k, h = KH*k;
+    gg.appendChild(el('rect', {x:-w/2, y:-h/2, width:w, height:h, rx:2,
+      fill:'var(--shell)', stroke:'var(--ink-2)', 'stroke-width':1.1}));
+    gg.appendChild(el('rect', {x:-w/2 + 3, y:-h/2 + 3, width:w - 6, height:h - 6,
+      fill:'var(--sheet)', stroke:'var(--red)', 'stroke-width':1, 'stroke-dasharray':'3 2'}));
+    leader(gg, 0, 0, 0, -h/2 - 16, '내면 무광 검정 · 액적을 덮어 상부 외광 차단',
+      {anchor:'middle', dy:0});
+  }, '단면. 실제 길이는 현 + 2×벽');
+  g.appendChild(txt(20, 22, '부품 도면 · 정면 · 팔마다 동일', {size:9.5, anchor:'start', fill:'var(--faint)', ls:'.08em'}));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   3D
+   ══════════════════════════════════════════════════════════════════ */
+let renderer, scene, camera, root, gHub, gRay, gArm, gBase;
+let orb = {th: 0.62, ph: 1.15, r: 620, tx: 0, ty: 0, tz: 0};
+let dragging = false, lastP = null;
+
+function segShape(a, R, cz, grow){
+  const Rf = R + (grow || 0);
+  const XP = Math.sqrt(Math.max(1, Rf*Rf - cz*cz));
+  const s = new THREE.Shape();
+  s.moveTo(-XP, 0); s.lineTo(XP, 0);
+  s.absarc(0, cz, Rf, Math.atan2(-cz, XP), Math.atan2(-cz, -XP) - 2*Math.PI, true);
+  return s;
+}
+function extrude(shape, depth, mat){
+  const gm = new THREE.ExtrudeGeometry(shape, {depth, bevelEnabled:false, curveSegments:64});
+  gm.translate(0, 0, -depth/2);
+  return new THREE.Mesh(gm, mat);
+}
+function tubeAlong(inner, outer, len, dir, origin, mat){
+  const s = new THREE.Shape();
+  s.moveTo(-outer/2,-outer/2); s.lineTo(outer/2,-outer/2); s.lineTo(outer/2,outer/2); s.lineTo(-outer/2,outer/2); s.closePath();
+  const h = new THREE.Path();
+  h.moveTo(-inner[0]/2,-inner[1]/2); h.lineTo(inner[0]/2,-inner[1]/2);
+  h.lineTo(inner[0]/2,inner[1]/2); h.lineTo(-inner[0]/2,inner[1]/2); h.closePath();
+  s.holes.push(h);
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, {depth:len, bevelEnabled:false}), mat);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), dir.clone().normalize());
+  m.position.copy(origin);
+  return m;
+}
+function build3D(){
+  const g0 = geom();
+  if(root) scene.remove(root);
+  root = new THREE.Group(); scene.add(root);
+  gHub = new THREE.Group(); gRay = new THREE.Group();
+  gArm = new THREE.Group(); gBase = new THREE.Group();
+  root.add(gHub); root.add(gRay); root.add(gArm); root.add(gBase);
+
+  const mPrism = new THREE.MeshPhysicalMaterial({color:0x9CC7DC, transparent:true, opacity:.42,
+    roughness:.08, metalness:0, transmission:0, side:THREE.DoubleSide});
+  const mHub   = new THREE.MeshStandardMaterial({color:0x8D99A4, roughness:.85, metalness:.05,
+    transparent:true, opacity:.60, side:THREE.DoubleSide});
+  const mDuct  = new THREE.MeshStandardMaterial({color:0x99A5B0, roughness:.9, metalness:.03,
+    transparent:true, opacity:.34, side:THREE.DoubleSide});
+  const mRay   = new THREE.MeshBasicMaterial({color:0xE8901F, transparent:true, opacity:.34,
+    side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false});
+  const mBaf   = new THREE.MeshStandardMaterial({color:0x20262B, roughness:1});
+  const mLed   = new THREE.MeshStandardMaterial({color:0xC0392B, roughness:.6});
+  const mSen   = new THREE.MeshStandardMaterial({color:0x2E7D46, roughness:.7});
+  const mChip  = new THREE.MeshStandardMaterial({color:0x14181C, roughness:.9});
+  const mMir   = new THREE.MeshStandardMaterial({color:0xD7E2EA, roughness:.06, metalness:.95});
+  const mCol   = new THREE.MeshStandardMaterial({color:0xE0913A, roughness:.7});
+  const mBase  = new THREE.MeshStandardMaterial({color:0x7C8794, roughness:.9, metalness:.04});
+
+  /* 프리즘 */
+  gHub.add(extrude(segShape(g0.a, g0.R, g0.cz, 0), S.thick, mPrism));
+
+  /* 허브 = 단면 프로파일 + 구멍(포켓·광로) 을 두께로 밀어내기 */
+  const prof = hubProfile(g0);
+  const hs = new THREE.Shape();
+  prof.forEach((p, i) => i ? hs.lineTo(p[0], p[1]) : hs.moveTo(p[0], p[1]));
+  hs.closePath();
+  for(const s of [-1, 1]){
+    const ux = Math.cos(g0.armR)*s, uz = -Math.sin(g0.armR), vx = -uz, vz = ux;
+    const pt = (L, sg) => [ s*g0.ex + ux*L + vx*sg*g0.winZ/2, g0.ez + uz*L + vz*sg*g0.winZ/2 ];
+    const q = [pt(-4,1), pt(g0.padOff + 1, 1), pt(g0.padOff + 1, -1), pt(-4,-1)];
+    const hh = new THREE.Path();
+    q.forEach((p, i) => i ? hh.lineTo(p[0], p[1]) : hh.moveTo(p[0], p[1]));
+    hh.closePath(); hs.holes.push(hh);
+  }
+  gHub.add(extrude(hs, g0.hubY, mHub));
+
+  /* 팔 끝 부품 — 일체형이라 덕트가 없다 */
+  for(const sd of [-1, 1]){
+    const L = legs(g0, sd)[0], AR = armOf(sd);
+    const dir = new THREE.Vector3(L.u[0], L.u[1], 0);
+    const A0 = new THREE.Vector3(L.A[0], L.A[1], 0);
+    const at = t => A0.clone().add(dir.clone().multiplyScalar(t));
+    const isDet = sd > 0;
+    const eh = isDet ? Math.ceil(CHIP.L + 2*P0.wall + 2) : 16;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(g0.padW*0.9, eh, g0.padW*0.9),
+      isDet ? mSen : mLed);
+    box.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), dir);
+    box.position.copy(at(AR + eh/2 + 1));
+    gArm.add(box);
+    if(isDet){
+      const chip = new THREE.Mesh(new THREE.BoxGeometry(CHIP.L, CHIP.W, CHIP.H), mChip);
+      chip.quaternion.copy(box.quaternion);
+      chip.position.copy(at(AR + CHIP.H/2 + 0.4));
+      gArm.add(chip);
+    }
+    /* 인쇄 조리개 */
+    g0.stopsFor(AR).forEach(st => {
+      const bs = new THREE.Shape(), o = g0.padW/2;
+      bs.moveTo(-o,-o); bs.lineTo(o,-o); bs.lineTo(o,o); bs.lineTo(-o,o); bs.closePath();
+      const bh = new THREE.Path();
+      bh.moveTo(-st.ap/2, -S.thick/2); bh.lineTo(st.ap/2, -S.thick/2);
+      bh.lineTo(st.ap/2, S.thick/2); bh.lineTo(-st.ap/2, S.thick/2); bh.closePath();
+      bs.holes.push(bh);
+      const m = new THREE.Mesh(new THREE.ExtrudeGeometry(bs, {depth:1.2, bevelEnabled:false}), mBaf);
+      m.quaternion.copy(box.quaternion);
+      m.position.copy(at(st.L));
+      gArm.add(m);
+    });
+  }
+
+  /* 광선 — 유리 안쪽 + 팔 */
+  const fh = S.fan/2*D, tfh = Math.tan(fh), rayT = Math.max(2, S.thick - 1);
+  for(const sd of [-1, 1]){
+    const ep = [];
+    for(const dt of [-fh, fh]){
+      const tr = traceRay(0, g0.tc + dt, g0.R, g0.cz, P0.np);
+      if(tr && tr.dir) ep.push([sd*tr.P[0], tr.P[1]]);
+    }
+    if(ep.length === 2){
+      const sh = new THREE.Shape();
+      sh.moveTo(0, 0); sh.lineTo(ep[0][0], ep[0][1]); sh.lineTo(ep[1][0], ep[1][1]); sh.closePath();
+      gRay.add(extrude(sh, rayT, mRay));
+    }
+    const L = legs(g0, sd)[0], w1 = armOf(sd)*tfh;
+    const q = [[L.A[0], L.A[1]],
+               [L.B[0] + L.v[0]*w1, L.B[1] + L.v[1]*w1],
+               [L.B[0] - L.v[0]*w1, L.B[1] - L.v[1]*w1]];
+    const sh = new THREE.Shape();
+    q.forEach((t, i) => i ? sh.lineTo(t[0], t[1]) : sh.moveTo(t[0], t[1]));
+    sh.closePath();
+    gRay.add(extrude(sh, rayT, mRay));
+  }
+
+  /* 받침대 */
+  {
+    const bz = g0.baseZ, bw = g0.baseW, bd = g0.baseD;
+    const xc = (g0.baseR - g0.baseL)/2;
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(bw, g0.baseT, bd), mBase);
+    plate.position.set(xc, bz - g0.baseT/2, 0);
+    gBase.add(plate);
+    /* 블록을 물어 세우는 홈턱 */
+    for(const sd of [-1, 1]){
+      const w = 5, rib = new THREE.Mesh(
+        new THREE.BoxGeometry(w, 10, Math.min(bd - 16, 54)), mBase);
+      rib.position.set(xc + sd*(g0.hubY/2 + w/2 + 0.3), bz + 5, 0);
+      gBase.add(rib);
+    }
+    [-g0.baseL*0.84, xc, g0.baseR*0.84].forEach((x, i) => {
+      const f = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 8, 20), mBase);
+      f.position.set(x, bz - g0.baseT - 4, i === 1 ? -bd*0.34 : bd*0.34);
+      gBase.add(f);
+    });
+  }
+
+  /* 액적 */
+  const drop = new THREE.Mesh(new THREE.SphereGeometry(Math.min(g0.a*0.34, 14), 28, 16, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshPhysicalMaterial({color:0x8FC6DE, transparent:true, opacity:.55, roughness:.05}));
+  drop.scale.set(1, 0.38, 1);
+  gHub.add(drop);
+
+  fitView('iso');
+}
+function fitView(v){
+  const g0 = geom();
+  const R = Math.max(g0.baseW/2*1.15, (P0.top - g0.baseZ)*1.1, 100);
+  if(v === 'iso'){ orb.th = 0.42; orb.ph = 1.02; }
+  if(v === 'front'){ orb.th = 0; orb.ph = Math.PI/2; }
+  if(v === 'top'){ orb.th = 0; orb.ph = 0.02; }
+  if(v === 'side'){ orb.th = Math.PI/2; orb.ph = Math.PI/2; }
+  orb.r = R*2.15; orb.ty = geom().baseZ*0.42;
+}
+function zoom(s){ orb.r = Math.max(60, Math.min(4000, orb.r * (1 + s*0.16))); }
+function initThree(){
+  const cv = document.getElementById('stage');
+  renderer = new THREE.WebGLRenderer({canvas:cv, antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(38, 2, 1, 8000);
+  scene.add(new THREE.HemisphereLight(0xE9F2F8, 0x2A3138, 1.05));
+  const d1 = new THREE.DirectionalLight(0xFFFFFF, .85); d1.position.set(340, 480, 420); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xE8901F, .30); d2.position.set(-420, -180, 260); scene.add(d2);
+  const d3 = new THREE.DirectionalLight(0x9FC4DA, .35); d3.position.set(120, -320, -400); scene.add(d3);
+
+  cv.addEventListener('pointerdown', e => { dragging = true; lastP = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointerup',   e => { dragging = false; });
+  cv.addEventListener('pointermove', e => {
+    if(!dragging) return;
+    orb.th -= (e.clientX - lastP[0]) * 0.006;
+    orb.ph = Math.max(0.02, Math.min(Math.PI - 0.02, orb.ph - (e.clientY - lastP[1]) * 0.006));
+    lastP = [e.clientX, e.clientY];
+  });
+  cv.addEventListener('wheel', e => {
+    if(!e.ctrlKey && !e.metaKey) return;          // 평소 휠은 페이지 스크롤에 양보
+    e.preventDefault();
+    zoom(Math.sign(e.deltaY));
+  }, {passive:false});
+  resize(); addEventListener('resize', resize);
+  (function loop(){
+    requestAnimationFrame(loop);
+    camera.position.set(
+      orb.tx + orb.r*Math.sin(orb.ph)*Math.sin(orb.th),
+      orb.ty + orb.r*Math.cos(orb.ph),
+      orb.tz + orb.r*Math.sin(orb.ph)*Math.cos(orb.th));
+    camera.lookAt(orb.tx, orb.ty, orb.tz);
+    renderer.render(scene, camera);
+  })();
+}
+function resize(){
+  const cv = document.getElementById('stage');
+  const w = cv.clientWidth, h = cv.clientHeight;
+  if(!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   표 · SCAD 출력 · 배선
+   ══════════════════════════════════════════════════════════════════ */
+function arrayTag(g0){
+  const over = g0.winZ - CHIP.arr;
+  if(over <= -3) return g0.winZ+' mm  <span class="tag warn">어레이 대비 과소 '
+    +over.toFixed(1)+'</span>';
+  if(over > 0)   return g0.winZ+' mm  <span class="tag warn">어레이 '+CHIP.arr
+    +' mm 초과 +'+over.toFixed(2)+'</span>';
+  return g0.winZ+' mm  <span class="tag ok">어레이 '+CHIP.arr+' mm 안에 들어옴</span>';
+}
+function bedTag(g0){
+  const w = Math.ceil(g0.bbX), d = g0.hubZ + P0.top, BED = 220;
+  const straight = w <= BED && d <= BED;
+  const diag = Math.hypot(w, d) <= Math.SQRT2*BED && (w + d)/Math.SQRT2 <= BED;
+  const t = straight ? '<span class="tag ok">그대로 들어감</span>'
+          : diag     ? '<span class="tag ok">대각 배치로 들어감</span>'
+                     : '<span class="tag warn">베드 초과</span>';
+  return w + ' × ' + d + ' mm  ' + t;
+}
+function rows(){
+  const g0 = geom();
+  const semi = g0.isSemi;
+  const R = [
+    ['곡률 반지름 R', g0.R.toFixed(3)+' mm', '(현/2)² + 사지타² / 2·사지타'],
+    ['곡률 중심 z', (g0.cz>=0?'+':'')+g0.cz.toFixed(3)+' mm', semi ? '측정점과 일치 — 반원' : '측정면 위(시료 쪽)'],
+    ['시료 굴절률 n', g0.nw.toFixed(5), 'OSU/Parrish, '+P0.T+' ℃ · '+S.psu+' PSU · '+P0.lam+' nm'],
+    ['임계각 θc', deg(g0.tc).toFixed(4)+'°', 'asin(n / '+P0.np+')'],
+    ['곡면 입사각', deg(g0.incR).toFixed(3)+'°', semi ? '수직 통과 — 굴절 없음' : '여기서 한 번 더 꺾임'],
+    ['곡면 통과점 E', g0.ex.toFixed(3)+' , '+g0.ez.toFixed(3)+' mm', '팔 축이 지나는 실제 점'],
+    ['팔 각도', '<b>'+deg(g0.armR).toFixed(4)+'°</b>', '현 기준 아래로'],
+    ['두 팔 사이각', '<b>'+(180-2*deg(g0.armR)).toFixed(3)+'°</b>', '허브가 지켜야 할 단 하나의 정밀 치수'],
+    ['팔 끝 좌표', '수평 '+(S.arm*Math.cos(g0.armR)).toFixed(1)+' · 아래 '+(S.arm*Math.sin(g0.armR)).toFixed(1)+' mm', 'E 로부터 '+S.arm+' mm'],
+    ['팔 길이', '조명 '+S.arm+' mm · <b>검출 '+S.armD+' mm</b>',
+      '비대칭. 조명팔은 액적이, 검출팔은 화소당 PSU 가 정한다'],
+    ['<b>기계 안정성 요구</b>', '<b>칩 1 µm 이동 = '
+      + (1e-3/CHIP.pitch*35/(6.0*S.armD/40)).toFixed(3) + ' PSU</b>',
+      '보정과 시료 측정 사이(1분)의 상대 이동. 균일 열팽창은 0.0024 PSU/°C 로 무해'],
+    ['광로 길이 (참고)', S.arm+' mm  <span style="color:var(--grey)">× '
+      +(Math.round(S.folds)+1)+'구간 = '+(S.arm/(Math.round(S.folds)+1)).toFixed(1)+' mm/구간</span>',
+      '분해능을 정하는 것은 직선 거리가 아니라 광로 길이'],
+    ['<b>장치 크기</b>', '<b>'+g0.baseW+' × '+g0.baseD+' × '
+      +(P0.top - g0.baseZ + g0.baseT)+' mm</b>', '바닥판 × 전체 높이'],
+    ['측정면 높이', (-g0.baseZ)+' mm', '책상면에서 액적을 올리는 면까지'],
+    ['<b>부품 적재 검사</b>',
+      (() => {
+        const rows = [['조명측', g0.hubL, g0.xNeedD !== undefined ? g0.xNeedI : 0, g0.reachI],
+                      ['검출측', g0.hubR, g0.xNeedD, g0.reachD]];
+        return rows.map(([n, half, need, reach]) =>
+          n + ' 팔+부품 ' + reach.toFixed(0) + ' → 반폭 ' + need.toFixed(1)
+          + ' vs ' + half
+          + (need <= half ? ' <span class="tag ok">OK</span>'
+                          : ' <span class="tag warn">초과</span>')).join('<br>');
+      })(),
+      '슬릿은 조명팔 끝에 있고 LED·확산판은 그 뒤. 칩은 검출팔 끝'],
+    ['블록 (비대칭)', '조명측 '+g0.hubL+' + 검출측 '+g0.hubR+' = <b>'+g0.hubX+' mm</b>',
+      '프리즘만 감싸는 최소는 '+g0.minHalf.toFixed(1)+' mm'],
+    ['구조', '<span class="tag ok">허브 일체형</span> 덕트·칼라·새들 없음',
+      '팔이 30 mm 급이면 블록이 팔 길이를 다 먹으므로 관통 채널이 단순하고 강함'],
+    ['인쇄 조리개', g0.stops.map(t => 'L'+t.L+' 개구 '+t.ap).join(' · '),
+      '국소 빔 폭에 맞춰 개구가 커짐. 비용 0'],
+    ['광창 높이 = 검출기 도달 폭', arrayTag(g0), '부채꼴 '+S.fan+'° × 팔 '+S.arm+' mm'],
+    ['화소 환산', (g0.winZ/CHIP.pitch).toFixed(0)+' px / '+CHIP.npx+' px',
+      '피치 63.5 µm. 부채꼴 4°는 어레이의 87 %를 씁니다 (2°면 43 %만)'],
+    ['권장 슬릿', Math.sqrt(P0.lam*1e-6*S.armD).toFixed(2)+' mm',
+      '√(λ·검출팔) — 기하 번짐과 회절이 같아지는 최적점. 기하 번짐은 슬릿 × (검출/조명)'],
+    ['측정면 조명 패치', (16.51*(S.arm/250)*(S.fan/2)).toFixed(1)+' mm',
+      '경계는 면 위에서 1.42 mm 만 움직임 — 패치가 그 3배면 충분'],
+    ['필요 액적', '지름 '+(16.51*(S.arm/250)*(S.fan/2)+2.5).toFixed(1)
+      +' mm · 0.2 mm 막이면 '+(3.1416*Math.pow((16.51*(S.arm/250)*(S.fan/2)+2.5)/2,2)*0.2).toFixed(0)+' µL',
+      '뚜껑으로 눌러 얇은 막을 만들 때'],
+    ['Δθc (0→35 PSU)', g0.dtc.toFixed(4)+'°', '전 염분 범위 신호'],
+    ['허브 반쪽 인쇄 바닥면', bedTag(g0), '분할면을 바닥에 놓았을 때. 베드 220×220 기준']
+  ];
+  document.getElementById('geo-body').innerHTML = R.map(r =>
+    '<tr><td>'+r[0]+'</td><td class="n">'+r[1]+'</td><td style="color:var(--grey);font-size:12.5px">'+r[2]+'</td></tr>').join('');
+
+  document.getElementById('shape-note').innerHTML = semi
+    ? '<p><span class="tag ok">반원</span> 곡률 중심이 측정점과 일치해 <b>주광선이 곡면을 0°로 통과합니다.</b> '
+      + '팔 각도 '+deg(g0.armR).toFixed(2)+'° 는 임계각의 여각과 정확히 같고, 곡면 굴절이 없으니 수차도 없습니다. '
+      + '염분이 바뀌어도 통과점만 곡면 위를 미끄러질 뿐 항상 수직입니다.</p>'
+    : '<p><span class="tag warn">활꼴</span> 사지타가 현/2 보다 작아 곡률 중심이 측정면 위 '+g0.cz.toFixed(1)+' mm 에 있습니다. '
+      + '주광선이 곡면을 '+deg(g0.incR).toFixed(1)+'° 로 만나 <b>한 번 더 굴절합니다.</b> '
+      + '그래서 팔 각도 '+deg(g0.armR).toFixed(2)+'° 는 임계각의 여각('+(90-deg(g0.tc)).toFixed(2)+'°)과 다르고, '
+      + '<b>외부 광선은 측정점을 지나지 않습니다</b> — 팔 축은 통과점 E 를 기준으로 잡아야 합니다.</p>';
+
+  const P = [
+    ['hub_a / hub_b', '<b>본체 반쪽</b> (일체형·비대칭)', g0.hubX+' × '+(g0.hubY/2).toFixed(2)+' × '
+      +(g0.hubZ+P0.top), '각 1',
+      '프리즘 포켓 + 관통 채널 + 조리개 + LED·칩 자리가 <b>한 부품에</b>'],
+    ['clamp', '프리즘 누름쇠', (S.chord+2*P0.wall)+' × '+g0.hubY+' × 6', '1', '양 끝만 눌러 측정면을 안 가림'],
+    ['cap', '<b>차광 캡</b>', (S.chord+2*P0.wall)+' × '+(g0.hubY+8)+' × 12', '1',
+      '시료를 덮어 <b>상부 외광을 차단</b>. 수동이라 여닫음 (§ILLUMINATION 5)'],
+    ['slit', '슬릿 클램프', '30 × 24 × 6', '1', '커터칼 날 2장 · 심 <b>1~2장(0.13 mm)</b>'],
+    ['led', 'LED 자리', 'ø5.25 압입 + 유산지 슬롯', '1', '돔을 갈아 평평하게. 본체에 직접 파임'],
+    ['sensor', 'TSL1401CL 칩 포켓', CHIP.L+' × '+CHIP.W+' × '+CHIP.H, '1',
+      '에폭시 고정 · 창을 덮지 말 것 · 선 5가닥 + 0.1 µF'],
+    ['base', '받침대', g0.baseW+' × '+g0.baseD+' × '+g0.baseT, '1',
+      '홈턱으로 본체를 물어 세움. <b>충진을 아끼지 마십시오</b>'],
+    ['foot', 'M4 수평조절 나사 + 너트', 'M4 × 12', '3', '삼각 지지']
+  ];
+    document.getElementById('parts-body').innerHTML = P.map(r =>
+    '<tr><td class="mono" style="color:var(--deep);font-weight:500">'+r[0]+'</td><td>'+r[1]+'</td>'
+    +'<td class="n">'+r[2]+'</td><td class="n">'+r[3]+'</td>'
+    +'<td style="color:var(--grey);font-size:12.5px">'+r[4]+'</td></tr>').join('');
+
+  const c = s => '<span class="c">'+s+'</span>', kk = s => '<span class="k">'+s+'</span>';
+  document.getElementById('scad-out').innerHTML =
+[c('// ── 프리즘 ─────────────────────────────────────────'),
+ 'P_CHORD = '+S.chord+';    '+c('// 현'),
+ 'P_SAG   = '+S.sag+';    '+c('// 사지타'),
+ 'P_THICK = '+S.thick+';    '+c('// 두께 — 실측해서 고칠 것'),
+ 'FIT     = '+P0.fit+';  '+c('// 포켓 편측 여유'),
+ '',
+ 'P_R  = '+geom().R.toFixed(4)+';   '+c('// (현/2)^2 + 사지타^2 / (2*사지타)'),
+ 'P_CZ = '+geom().cz.toFixed(4)+';   '+kk('// 곡률중심은 측정면 위. 2026-09-02 부호 정정'),
+ '',
+ c('// ── 광학 ───────────────────────────────────────────'),
+ 'ARM_DEG = '+deg(geom().armR).toFixed(4)+';  '+c('// 팔이 측정면에서 아래로'),
+ 'EXIT_X  = '+geom().ex.toFixed(4)+';  '+c('// 광선이 곡면을 지나는 자리'),
+ 'EXIT_Z  = '+geom().ez.toFixed(4)+';',
+ 'WIN_Z   = '+geom().winZ+';       '+c('// 부채꼴 '+S.fan+'deg x 팔 '+S.arm+'mm'),
+ 'PAD_L   = '+geom().padL+';      '+c('// 접착 패드 길이'),
+ 'PAD_W   = '+geom().padW+';      '+c('// 접착 패드 폭'),
+ '',
+ c('// ── 허브 ───────────────────────────────────────────'),
+ 'HUB_TOP = '+P0.top+';',
+ 'HUB_L   = '+geom().hubL+';      '+c('// 조명측 반폭 (비대칭)'),
+ 'HUB_R   = '+geom().hubR+';      '+c('// 검출측 반폭'),
+ 'HUB_Z   = '+geom().hubZ+';',
+ 'WALL    = '+P0.wall+';',
+ 'PAD_OFF = '+geom().padOff+';      '+kk('// on_arm(s, PAD_OFF) — 곡면 통과점에서의 거리')
+].join('\n');
+}
+
+/* 배선 */
+function refresh(){ rows(); drawLayout(); drawHub(); drawParts(); build3D(); }
+
+const pw = document.getElementById('presets');
+PRESETS.forEach((p, i) => {
+  const b = document.createElement('button');
+  b.className = 'p'; b.textContent = p.name; b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+  b.onclick = () => {
+    S.chord = p.chord; S.sag = p.sag; S.thick = p.thick;
+    [...pw.children].forEach(x => x.setAttribute('aria-pressed','false'));
+    b.setAttribute('aria-pressed','true');
+    sync(); refresh();
+  };
+  pw.appendChild(b);
+});
+const F = {'i-chord':'chord','i-sag':'sag','i-thick':'thick','i-arm':'arm',
+           'i-armd':'armD','i-fan':'fan','i-psu':'psu'};
+function sync(){ for(const id in F) document.getElementById(id).value = S[F[id]]; }
+for(const id in F){
+  document.getElementById(id).addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if(!isFinite(v) || v <= 0) return;    S[F[id]] = v;
+    [...pw.children].forEach(x => x.setAttribute('aria-pressed','false'));
+    refresh();
+  });
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-view]').forEach(x => x.setAttribute('aria-pressed','false'));
+  b.setAttribute('aria-pressed','true'); fitView(b.dataset.view);
+});
+function tog(id, grp){
+  const b = document.getElementById(id);
+  b.onclick = () => {
+    const on = b.getAttribute('aria-pressed') !== 'true';
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    const g = grp(); if(g) g.visible = on;
+  };
+}
+document.getElementById('z-in').onclick  = () => zoom(-1);
+document.getElementById('z-out').onclick = () => zoom(1);
+tog('t-hub', () => gHub); tog('t-ray', () => gRay);
+tog('t-arm', () => gArm); tog('t-base', () => gBase);
+document.getElementById('copy-btn').onclick = async () => {
+  const t = document.getElementById('scad-out').innerText;
+  try { await navigator.clipboard.writeText(t); const b = document.getElementById('copy-btn');
+    b.textContent = '복사됨'; setTimeout(() => b.textContent = '복사', 1400); } catch(e){}
+};
+
+sync(); initThree(); refresh();
+</script>
+</body>
+</html>
