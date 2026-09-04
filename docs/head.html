@@ -1050,9 +1050,15 @@ function drawLayout(){
    도면 2 — 허브 단면
    ══════════════════════════════════════════════════════════════════ */
 function hubProfile(g0){
-  /* 바깥 윤곽: 포켓 입구와 측정창 턱을 포함한 하나의 닫힌 경로 */
-  const HL = g0.hubL, HR = g0.hubR, HZ = g0.hubZ, TP = P0.top, XP = g0.xp, XW = g0.xw;
-  const pts = [[-HL,-HZ],[HR,-HZ],[HR,TP],[XW,TP],[XW,0],[XP,0]];
+  /* 바깥 윤곽: 포켓 입구와 측정창 턱을 포함한 하나의 닫힌 경로.
+     ★ 측정창은 **네 면 모두 사면**이다 (2026-09-02). 이 단면(Y=0)에는 x 쪽
+       두 면이 잘려 보이고, y 쪽 두 면도 같은 각으로 벌어진다 —
+       z=0 에서 (7, 4) 이던 반폭이 z=3 에서 (8.40, 5.40) 이 된다.
+     ⚠ 3D 조립도는 이 단면을 두께로 밀어내므로 창을 **전폭 슬롯**으로 그린다.
+       실제는 y 로도 제한된 사면 상자다 — 치수는 scad/ 와 아래 단면이 정확하다. */
+  const HL = g0.hubL, HR = g0.hubR, HZ = g0.hubZ, TP = P0.top, XP = g0.xp;
+  const XW = g0.xw, XT = g0.xw + TP*Math.tan(g0.winTap*D);   // 바닥 / 윗면 반폭
+  const pts = [[-HL,-HZ],[HR,-HZ],[HR,TP],[XT,TP],[XW,0],[XP,0]];
   const Rf = g0.R + P0.fit;
   const aS = Math.atan2(-g0.cz, XP), aE = Math.atan2(-g0.cz, -XP);
   for(let i = 0; i <= 80; i++){
@@ -1060,7 +1066,7 @@ function hubProfile(g0){
     const p = [Rf*Math.cos(t), g0.cz + Rf*Math.sin(t)];
     if(p[1] <= 0.01) pts.push(p);
   }
-  pts.push([-XP,0],[-XW,0],[-XW,TP],[-HL,TP]);
+  pts.push([-XP,0],[-XW,0],[-XT,TP],[-HL,TP]);
   return pts;
 }
 function drawHub(){
