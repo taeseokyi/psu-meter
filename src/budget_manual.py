@@ -53,6 +53,13 @@ NFRAME = 16                      # 프레임 평균
 FLAT_RESID = 0.002               # 플랫필드 후 남는 PRNU 비율 (0.2 %)
 T_SENSOR = 0.0625                # DS18B20 12비트 분해능 [degC]
 DNDT_PSU = 0.667                 # 두 액의 온도차 1 degC 당 [PSU/degC]  (HANDOFF §1)
+# ---- 온도 항의 sqrt(2) (2026-09-02 반영) ------------------------------
+# 2점 보정은 두 액이 **함께** 드리프트하는 몫만 지운다(450배). 지워지지 않는
+# 것은 표준액과 시료의 **온도차**이고, 그것은 액적마다 읽은 두 온도의 차로
+# 보정한다. 두 읽기의 양자화 오차가 독립이므로 차에는 sqrt(2) 가 붙는다.
+# 예전에는 한 번 읽기만 세어 0.0417 로 잡았지만 실제 규약은 두 번 읽기다.
+T_READS = 2                      # 액적마다 읽는다 (보정액 1 + 시료 1)
+T_TERM = math.sqrt(T_READS) * T_SENSOR * DNDT_PSU
 SNR1 = 1300.0                    # 단일 프레임 SNR (데이터시트 + 10비트 ADC)
 
 # 팔 길이별 최적 슬릿 = sqrt(lambda*L)
@@ -190,7 +197,7 @@ def main():
         ("PRNU (플랫필드 잔차 %.1f %%)" % (FLAT_RESID * 100),
          prnu_bias(ARM_CONF, slit_conf, FLAT_RESID)[0]),
         ("2점 보정 — 곡선 피팅 후 잔차", 0.005),
-        ("온도 (센서 %.4f degC x %.3f)" % (T_SENSOR, DNDT_PSU), T_SENSOR * DNDT_PSU),
+        ("온도 (센서 %.4f x %.3f x sqrt%d)" % (T_SENSOR, DNDT_PSU, T_READS), T_TERM),
     ]
     for name, v in items:
         print("      %-34s %.4f PSU" % (name, v))
