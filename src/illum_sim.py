@@ -21,8 +21,19 @@ import math, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import segment_optics as so
 
-NP=so.N_PRISM; PIX=so.PIXEL_MM; ARM_D=so.ARM_MM
-R,CY=so.segment_geometry(60.,20.)
+NP=so.N_PRISM; PIX=so.PIXEL_MM
+# ---- 형상과 팔 기준점 (2026-09-02 정정) ------------------------------
+# 이 파일은 활꼴 60x20 @ 팔 250 으로 굳어 있었다. ILLUMINATION.md 의 계수
+# (PATCH_M=1.89, EDGE_K=0.88, SWEEP_250=1.424)가 전부 그 조건에서 맞춘 값이다.
+# 확정 형상은 **반원 60x30** 이고 그 계수들은 여기에 맞지 않는다 — 쓰지 말 것.
+#
+# ★ 이 파일 안에 기준점이 두 개 섞여 있다:
+#     arm_s (조명팔)  : P_IN = 곡면 통과점 E 기준
+#     ARM_D (검출기)  : 원점 = 측정점 M 기준
+#   반원이면 지렛대 = R + 기계팔 이므로 기계팔 60 인 물건은 ARM_D = 90 이다.
+CHORD_MM, SAG_MM = 60., 30.      # 확정 형상
+ARM_D = 90.                      # 검출 지렛대 (M 기준) = R 30 + 기계팔 60
+R,CY=so.segment_geometry(CHORD_MM, SAG_MM)
 n_w=lambda S: so.n_water(so.T_C,S)
 TH_INT=so.theta_c(34.)                                  # 내부 임계각 63.85
 _,CHIEF,_=so.trace(0.,TH_INT,R,CY)                      # 외부 주광선 방향
@@ -33,7 +44,7 @@ A_PERP=(CHIEF[1],CHIEF[0])
 # 출사점 P_out 의 거울상 P_in 을 지난다. 슬릿은 거기서 arm_s 만큼 나간 자리.
 _POUT,_,_=so.trace(0.,TH_INT,R,CY)
 P_IN=(-_POUT[0],_POUT[1])
-CHORD=60.
+CHORD=CHORD_MM
 
 def unit(v):
     m=math.hypot(*v); return (v[0]/m,v[1]/m)
@@ -101,6 +112,22 @@ def cutoff(arm_s,slit,fan,S_psu,slope=None,N=41):
         if r: Xs.append(r[2]); xs.append(r[0])
     if not Xs: return None
     return (sum(Xs)/len(Xs), max(Xs)-min(Xs), sum(xs)/len(xs), max(xs)-min(xs))
+
+def beam_at(arm_s,slit,fan,lever):
+    """검출기면(M 기준 lever)에서의 실제 빔 폭 [mm].
+       ★ 이 빔은 팔 끝으로 갈수록 좁아진다 — 곡면이 렌즈로 작동해 슬릿을
+         결상하기 때문이다. 2*lever*tan(fan/2) 로 계산하면 안 된다."""
+    global ARM_D
+    keep, ARM_D = ARM_D, lever
+    h=math.radians(fan)/2; Xs=[]
+    for i in range(9):
+        p=(-slit/2+slit*i/8) if slit>0 else 0.
+        for j in range(81):
+            r=trace(arm_s,p,-h+2*h*j/80)
+            if r: Xs.append(r[2])
+    ARM_D = keep
+    return (max(Xs)-min(Xs)) if Xs else 0.
+
 
 def patch(arm_s,slit,fan):
     h=math.radians(fan)/2; xs=[]

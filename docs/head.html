@@ -372,7 +372,7 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
       물로 들어온 외광은 검출기의 어두운 쪽만 비대칭으로 채워 경계를 밀어냅니다(§5-1).
       내면은 무광 검정으로.
       <b>힌지가 없습니다.</b> 네 벽이 <b>바닥판에 직접 내려앉아</b> 본체를 아예 건드리지 않으므로,
-      누르는 힘이 프리즘–칩 사이를 휘게 할 경로 자체가 없습니다(칩 1 µm 이동 = 0.061 PSU).
+      누르는 힘이 프리즘–칩 사이를 휘게 할 경로 자체가 없습니다(칩 1 µm 이동 = 0.041 PSU).
       들어서 벗기고 덮습니다. ⚠ <b>배선 노치는 블록의 배선 슬롯과 일직선이 되면 안 됩니다</b> —
       그러면 외광이 곧장 칩까지 듭니다. 그래서 노치를 y 로 12 mm 비켜 놓았습니다.</li>
   </ol>
@@ -398,14 +398,14 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
   0.0067 로 떨어집니다. 재현: <code>src/budget_manual.py</code>.</p>
   <p><b>팔이 비대칭인 이유</b> — 조명팔은 <b>액적 크기</b>가 정하고(패치 ∝ 조명팔 × 부채꼴),
   검출팔은 <b>화소당 PSU 와 기계 안정성</b>이 정합니다. 요구가 서로 반대라 한쪽만 늘립니다.
-  검출팔 60 mm 에서 <b>칩이 1 µm 옆으로 미끄러지면 0.061 PSU</b> — 0.05 PSU 를 지키려면
-  <b>0.82 µm</b> 안이어야 합니다(40 mm 면 0.55 µm). 절대값이 아니라 보정과 시료 측정
+  광학 지렛대 90 mm(= R 30 + 기계팔 60)에서 <b>칩이 1 µm 옆으로 미끄러지면 0.041 PSU</b> —
+  0.05 PSU 를 지키려면 <b>1.23 µm</b> 안이어야 합니다. 절대값이 아니라 보정과 시료 측정
   사이의 상대 이동이고, <b>균일 열팽창은 0.0024 PSU/°C 로 무해</b>합니다.
   ⚠ <b>그래서 뚜껑을 누르는 힘이 프리즘–칩 사이를 휘게 하면 안 됩니다</b> —
   그래서 뚜껑을 <b>바닥판에 내려앉는 슈라우드</b>로 만들어 하중 경로를 아예 없앴습니다.</p>
   <p><b>남은 최대 미검증 위험은 표면 굴곡</b>입니다 (<code>ILLUMINATION.md</code> §3-2 —
   0.5~2 mm 주기에 λ/20). 팔을 짧게 해도 나아지지 않지만, 부채꼴을 4.5° 로 줄여
-  패치가 5.9 mm 가 된 것이 완화입니다. 그리고 <b>스팬이 6 화소뿐</b>이라 그 사이의
+  패치가 8.7 mm 가 된 것이 완화입니다. 그리고 <b>스팬이 13.5 화소뿐</b>이라 그 사이의
   불량화소 하나가 치명적입니다 — 검출·보간을 펌웨어에 넣어야 합니다.</p>
   <p><b>실내등을 광원으로 쓰는 안은 안 됩니다.</b> 방 조명만으로도 눈으로는 경계가 보이지만
   (그건 동공이 각도 선택기 역할을 해서입니다), 광원으로 쓰면 <b>시료 쪽 차광을 영원히 할 수
@@ -475,6 +475,124 @@ function traceRay(x0, th, R, cz, np){
   return {P, dir:[rx/m, rz/m], inc};
 }
 
+/* ── 조명 광선추적 — src/illum_sim.py 이식 (2026-09-02) ─────────────────
+   지금까지 조명 패치는 `16.51*(팔/250)*(부채꼴/2)` 라는 **맞춘 계수**를 썼는데,
+   그 계수는 **활꼴 60×20 · 팔 250 mm** 에서 뽑은 것이라 지금 형상(반원 60×30)에
+   맞지 않았다. 반원은 곡면 굴절이 없어 지렛대가 M 부터라 계수가 아예 다르다.
+   그래서 계수를 버리고 여기서 직접 추적한다.
+   좌표: x 오른쪽, z 위. 유리는 z<0. 원 중심 (0, cz). */
+function circHit(o, d, near, R, cz){
+  const ox = o[0], oz = o[1] - cz;
+  const b = 2*(ox*d[0] + oz*d[1]), c = ox*ox + oz*oz - R*R;
+  const disc = b*b - 4*c;
+  if(disc < 0) return null;
+  const q = Math.sqrt(disc), ts = [(-b-q)/2, (-b+q)/2].filter(t => t > 1e-9);
+  if(!ts.length) return null;
+  return near ? Math.min.apply(null, ts) : Math.max.apply(null, ts);
+}
+function refract(d, nv, n1, n2){
+  const eta = n1/n2;
+  let ci = -(d[0]*nv[0] + d[1]*nv[1]), N = nv;
+  if(ci < 0){ ci = -ci; N = [-nv[0], -nv[1]]; }
+  const k = 1 - eta*eta*(1 - ci*ci);
+  if(k < 0) return null;                       // 전반사
+  const f = eta*ci - Math.sqrt(k);
+  return [eta*d[0] + f*N[0], eta*d[1] + f*N[1]];
+}
+/* 측정점에서 내부각 th 로 출발한 광선의 검출기면 좌표.
+   ★ 검출기면은 **측정점 M 에서** lever 만큼 떨어진 자리다 (E 가 아니다).
+     반원이면 곡면 굴절이 없어 광선이 M 을 지나는 하나의 직선이므로
+     프리즘 반지름이 지렛대의 일부다.  lever = E·주광선 + 기계팔.
+     2026-09-02 이전에는 기계팔(E 기준)을 그대로 지렛대로 써서
+     스팬·광창·조리개가 모두 1.5배 작게 나왔다. */
+function detPos(g0, th, lever){
+  const tr = traceRay(0, th, g0.R, g0.cz, P0.np);
+  if(!tr || !tr.dir) return null;
+  const ch = [Math.cos(g0.armR), -Math.sin(g0.armR)];
+  const C = [lever*ch[0], lever*ch[1]];
+  const den = tr.dir[0]*ch[0] + tr.dir[1]*ch[1];
+  if(Math.abs(den) < 1e-12) return null;
+  const ss = ((C[0]-tr.P[0])*ch[0] + (C[1]-tr.P[1])*ch[1])/den;
+  const H = [tr.P[0] + ss*tr.dir[0], tr.P[1] + ss*tr.dir[1]];
+  const pp = [-ch[1], ch[0]];
+  return (H[0]-C[0])*pp[0] + (H[1]-C[1])*pp[1];
+}
+
+/* 검출측 : 팔 축 L(E 기준)에서의 실제 빔 폭 [mm].
+   ★ 이 빔은 팔 끝으로 갈수록 **좁아진다** — 곡면이 렌즈로 작동해 슬릿을
+     결상하기 때문이다(허리는 L≈90). 조리개 개구는 이 폭을 따라가야 한다.
+     2026-09-02 이전에는 2*L*tan(부채꼴/2) 로 잡아 **거꾸로 커지고** 있었다. */
+function beamD(g0, L, slit){
+  const half = S.fan/2*D, lev = g0.eProj + L;
+  let lo = 1e9, hi = -1e9;
+  for(let a = 0; a < 7; a++){
+    const po = -slit/2 + slit*a/6;
+    for(let k = 0; k <= 60; k++){
+      const r = illumTrace(g0, S.arm, po, -half + 2*half*k/60, lev);
+      if(r){ if(r.X < lo) lo = r.X; if(r.X > hi) hi = r.X; }
+    }
+  }
+  return hi > lo ? hi - lo : 0;
+}
+/* 조명측 : 슬릿에서 L(E 기준)까지 온 빔의 폭. 슬릿에서 퍼지므로 팔 끝이 가장 좁다. */
+function beamI(g0, L, slit){
+  const half = S.fan/2*D;
+  const ch = [Math.cos(g0.armR), -Math.sin(g0.armR)];
+  const A = [-ch[0], ch[1]], Ap = [-A[1], A[0]];
+  const PIN = [-g0.ex, g0.ez], C = [PIN[0] + L*A[0], PIN[1] + L*A[1]];
+  let lo = 1e9, hi = -1e9;
+  for(let a = 0; a < 7; a++){
+    const po = -slit/2 + slit*a/6;
+    const SL = [PIN[0] + S.arm*A[0] + po*Ap[0], PIN[1] + S.arm*A[1] + po*Ap[1]];
+    for(let k = 0; k <= 60; k++){
+      const dl = -half + 2*half*k/60, cd = Math.cos(dl), sd = Math.sin(dl);
+      const b = [-A[0], -A[1]], d = [b[0]*cd - b[1]*sd, b[0]*sd + b[1]*cd];
+      const den = d[0]*A[0] + d[1]*A[1];
+      if(Math.abs(den) < 1e-12) continue;
+      const t = ((C[0]-SL[0])*A[0] + (C[1]-SL[1])*A[1])/den;
+      const H = [SL[0] + t*d[0], SL[1] + t*d[1]];
+      const v = (H[0]-C[0])*Ap[0] + (H[1]-C[1])*Ap[1];
+      if(v < lo) lo = v; if(v > hi) hi = v;
+    }
+  }
+  return hi > lo ? hi - lo : 0;
+}
+
+/* 슬릿의 한 점 pOff 에서 부채꼴 각 delta 로 나간 광선을
+   곡면(공기→유리) → 측정면 반사 → 곡면(유리→공기) → 검출기면 까지 보낸다.
+   반환 {x: 측정면 착지 x, inc: 측정면 입사각(rad), X: 검출기 면내 좌표} */
+function illumTrace(g0, armS, pOff, delta, lever){
+  const Rr = g0.R, cz = g0.cz, np = P0.np;
+  const ch = [Math.cos(g0.armR), -Math.sin(g0.armR)];   // 검출측 주광선
+  const A  = [-ch[0], ch[1]], Ap = [-A[1], A[0]];       // 조명측(거울상)과 그 수직
+  const PIN = [-g0.ex, g0.ez];
+  const SL = [PIN[0] + armS*A[0] + pOff*Ap[0], PIN[1] + armS*A[1] + pOff*Ap[1]];
+  const b = [-A[0], -A[1]], cd = Math.cos(delta), sd = Math.sin(delta);
+  const d = [b[0]*cd - b[1]*sd, b[0]*sd + b[1]*cd];
+  const t = circHit(SL, d, true, Rr, cz);
+  if(t === null) return null;
+  const P = [SL[0] + t*d[0], SL[1] + t*d[1]];
+  if(P[1] >= 0) return null;                            // 유리 안이어야
+  const d2 = refract(d, [P[0]/Rr, (P[1]-cz)/Rr], 1, np);
+  if(!d2 || d2[1] <= 1e-12) return null;                // 측정면(위)으로 가야
+  const x = P[0] - P[1]*d2[0]/d2[1];
+  if(Math.abs(x) > S.chord/2) return null;
+  const inc = Math.acos(Math.min(1, Math.abs(d2[1])));
+  const dr = [d2[0], -d2[1]], O = [x, 0];
+  const t3 = circHit(O, dr, false, Rr, cz);
+  if(t3 === null) return null;
+  const Q = [O[0] + t3*dr[0], O[1] + t3*dr[1]];
+  const d3 = refract(dr, [Q[0]/Rr, (Q[1]-cz)/Rr], np, 1);
+  if(!d3) return null;
+  const C = [lever*ch[0], lever*ch[1]];
+  const den = d3[0]*ch[0] + d3[1]*ch[1];
+  if(Math.abs(den) < 1e-12) return null;
+  const ss = ((C[0]-Q[0])*ch[0] + (C[1]-Q[1])*ch[1])/den;
+  const H = [Q[0] + ss*d3[0], Q[1] + ss*d3[1]];
+  const pp = [-ch[1], ch[0]];
+  return {x: x, inc: inc, X: (H[0]-C[0])*pp[0] + (H[1]-C[1])*pp[1]};
+}
+
 const P0 = {T:26, lam:590, np:1.491, wall:3.5, fit:0.35, top:3, m3:3.4};
 /* TSL1401CL CL 패키지 — docs/datasheets/TSL1401CL.pdf Figure 10 */
 const CHIP = {L:9.4, W:3.0, H:1.2, arr:8.064, pitch:0.0635, npx:128, off:0.305};
@@ -508,8 +626,25 @@ function geom(){
   const tc = Math.asin(nw/P0.np);
   const tr = traceRay(0, tc, R, cz, P0.np);
   const armR = Math.atan2(-tr.dir[1], tr.dir[0]);
-  /* 광창은 검출팔 끝에서 가장 넓다 */
-  const winZ = Math.ceil(2*S.armD*Math.tan(S.fan/2*D)*10)/10;
+  /* ★ 광학 지렛대는 **측정점 M 부터**다. 기계 팔(S.armD)은 곡면 통과점 E 부터고,
+     그 둘의 차 E·주광선(반원이면 정확히 R)이 지렛대에 더해진다.
+     2026-09-02 정정 — 전에는 기계 팔을 그대로 지렛대로 써서
+     스팬 9.0 px / 광창 4.7 mm 가 나왔지만 실제로는 13.9 px / 7.1 mm 다. */
+  const eProj = tr.P[0]*Math.cos(armR) - tr.P[1]*Math.sin(armR);
+  const lever  = eProj + S.armD;                 // 검출기까지 (M 기준)
+  const leverI = eProj + S.arm;                  // 슬릿까지 (M 기준, 참고)
+  const G0 = {R, cz, armR, ex:tr.P[0], ez:tr.P[1], lever, leverI};
+  /* 채널 높이 = 관통 구간에서 **가장 넓은 빔**. 추적으로 잰다.
+     검출측 빔은 프리즘 쪽이 가장 넓고 팔 끝으로 갈수록 좁아진다. */
+  G0.eProj = eProj;
+  const SLIT_MM = 0.19;
+  let winRaw = 0;
+  for(let k = 0; k <= 12; k++){
+    const L = -2 + (S.armD + 2)*k/12;
+    winRaw = Math.max(winRaw, beamD(G0, L, SLIT_MM), beamI(G0, Math.min(L, S.arm), SLIT_MM));
+  }
+  const winZ = Math.ceil((winRaw + 0.6)*10)/10;    // 편측 0.3 여유
+  const beamChip = beamD(G0, S.armD, SLIT_MM);      // 칩 자리 빔 폭
   const padW = Math.max(24, Math.ceil(Math.max(winZ, S.thick) + 2*P0.wall + 1));
   /* ── 허브 일체형 ──────────────────────────────────────────────────
      팔이 30 mm 급이면 블록이 팔 길이를 거의 다 먹으므로, 덕트·칼라·새들 없이
@@ -553,25 +688,67 @@ function geom(){
          세 번째는 개구 4.75 / 채널 4.8 이라 어깨가 **0.025 mm** 였다 — 인쇄도 안 된다.
      그래서 조리개는 **빔 원점에서 dmax 안**에만 놓는다. 팔 끝 쪽은 빔이 채널을
      꽉 채워 조리개가 할 일이 없다. */
+  /* 조리개 개구 = **그 자리의 실제 빔 폭** + 0.6, 어깨(개구와 채널 벽 사이 살)가
+     1 mm 이상 남는 자리에만 둔다. 빔 폭은 공식이 아니라 추적값이다. */
   const SHOULDER = 1.0;
-  const stopsFor = (arm, fromEnd) => {
-    const t = Math.tan(S.fan/2*D);
-    const dmax = (winZ/2 - SHOULDER - 0.3)/t;       // 빔 원점에서의 유효 한계
-    return [0.35, 0.68, 1.0].map(f => {
-      const d = Math.min(dmax*f, arm);              // 빔 원점에서의 거리
-      return {L: +(fromEnd ? arm - d : d).toFixed(1), ap: +(2*d*t + 0.6).toFixed(2)};
-    });
+  const stopsAt = (side) => {
+    const arm = side > 0 ? S.armD : S.arm;
+    const out = [];
+    for(const f of [0.34, 0.62, 0.88]){
+      const L = +(arm*f).toFixed(1);
+      const w = side > 0 ? beamD(G0, L, SLIT_MM) : beamI(G0, L, SLIT_MM);
+      const ap = +(w + 0.6).toFixed(2);
+      if((winZ - ap)/2 >= SHOULDER) out.push({L: L, ap: ap});
+    }
+    return out;
   };
-  const stops = stopsFor(S.armD, false), stopsI = stopsFor(S.arm, true);
+  const stops = stopsAt(1), stopsI = stopsAt(-1);
+  const stopsFor = (arm, fromEnd) => (fromEnd ? stopsI : stops);
   const endX0 = tr.P[0] + S.arm*Math.cos(armR);
   const endZ0 = tr.P[1] - S.arm*Math.sin(armR);
   const nw0 = nWater(P0.T,0,P0.lam), nw35 = nWater(P0.T,35,P0.lam);
+  /* 0→35 PSU 스팬 — 추적 */
+  const spanMM = Math.abs(detPos(G0, Math.asin(nw0/P0.np), lever)
+                        - detPos(G0, Math.asin(nw35/P0.np), lever));
+  const spanPX = spanMM/CHIP.pitch;
+  /* 조명 패치 · 측정면 경계 이동 · **부채꼴 보정범위 커버 검사** — 전부 추적.
+     ★ 부채꼴은 θc(수조 염도)를 중심으로 잡혀 있는데, 2점 보정은 0 과 35 PSU 를
+       둘 다 봐야 한다. 조명된 입사각 범위가 그 둘을 품는지 반드시 확인할 것. */
+  const illum = (() => {
+    const half = S.fan/2*D, slit = SLIT_MM;
+    let lo = 1e9, hi = -1e9, iLo = 1e9, iHi = -1e9;
+    const hits = [];
+    for(let i = 0; i < 9; i++){
+      const po = -slit/2 + slit*i/8;
+      for(let k = 0; k <= 120; k++){
+        const r = illumTrace(G0, S.arm, po, -half + 2*half*k/120, lever);
+        if(!r) continue;
+        if(r.x < lo) lo = r.x; if(r.x > hi) hi = r.x;
+        if(r.inc < iLo) iLo = r.inc; if(r.inc > iHi) iHi = r.inc;
+        hits.push(r);
+      }
+    }
+    const th0 = Math.asin(nw0/P0.np), th35 = Math.asin(nw35/P0.np);
+    /* 경계가 측정면 위에서 움직이는 거리 — 각 염도에서 inc≈θc 인 광선의 x */
+    const xAt = th => {
+      let best = null, bd = 1e9;
+      for(const r of hits){ const d = Math.abs(r.inc - th); if(d < bd){ bd = d; best = r; } }
+      return (bd < 2e-4) ? best.x : null;      // 0.011° 안에서 찾았을 때만
+    };
+    const x0 = xAt(th0), x35 = xAt(th35);
+    return {patch: (hi > lo) ? hi - lo : 0,
+            sweep: (x0 !== null && x35 !== null) ? Math.abs(x0 - x35) : null,
+            incLo: iLo, incHi: iHi,
+            covers: iLo <= th0 && iHi >= th35,
+            marginLo: (th0 - iLo)/D, marginHi: (iHi - th35)/D};
+  })();
   return {
     a, h, R, cz, nw, tc, incR:tr.inc, armR,
     ex:tr.P[0], ez:tr.P[1],
     endX: tr.P[0] + S.arm*Math.cos(armR),
     endZ: tr.P[1] - S.arm*Math.sin(armR),
     winZ, padW, padL, padOff, bossL, hubX, hubL, hubR, hubY, hubZ, bbX, deepest,
+    lever, leverI, eProj, spanMM, spanPX, patch:illum.patch, sweep:illum.sweep, beamChip, illum,
     stops, stopsI, stopsFor,
     reachI, reachD, xNeedI: xNeed(reachI), xNeedD: xNeed(reachD), minHalf,
     /* 블록 바닥이 바닥판 윗면에 **닿는다**. 예전 -(hubZ+1) 은 1 mm 떠 있어서
@@ -1283,9 +1460,26 @@ function rows(){
     ['팔 끝 좌표', '수평 '+(S.arm*Math.cos(g0.armR)).toFixed(1)+' · 아래 '+(S.arm*Math.sin(g0.armR)).toFixed(1)+' mm', 'E 로부터 '+S.arm+' mm'],
     ['팔 길이', '조명 '+S.arm+' mm · <b>검출 '+S.armD+' mm</b>',
       '비대칭. 조명팔은 액적이, 검출팔은 화소당 PSU 가 정한다'],
+    ['<b>광학 지렛대</b>', '<b>'+g0.lever.toFixed(1)+' mm</b>  <span style="color:var(--grey)">= E·주광선 '
+      +g0.eProj.toFixed(1)+' + 기계팔 '+S.armD+'</span>',
+      '★ 측정점 M 부터다. 반원은 곡면 굴절이 없어 프리즘 반지름이 지렛대에 포함된다'],
+    ['<b>0→35 PSU 스팬</b>', '<b>'+g0.spanMM.toFixed(3)+' mm = '+g0.spanPX.toFixed(1)+' px</b>',
+      '광선추적. 지렛대 × tan(Δθc)'],
+    ['화소당 염도', (35/g0.spanPX).toFixed(2)+' PSU/px', '스팬을 128 화소 피치로 나눈 값'],
     ['<b>기계 안정성 요구</b>', '<b>칩 1 µm 이동 = '
-      + (1e-3/CHIP.pitch*35/(6.0*S.armD/40)).toFixed(3) + ' PSU</b>',
+      + (35/(g0.spanMM*1000)).toFixed(4) + ' PSU</b>',
       '보정과 시료 측정 사이(1분)의 상대 이동. 균일 열팽창은 0.0024 PSU/°C 로 무해'],
+    ['<b>부채꼴 보정범위 검사</b>',
+      (() => {
+        const il = g0.illum;
+        return '조명된 입사각 '+deg(il.incLo).toFixed(3)+'~'+deg(il.incHi).toFixed(3)+'°<br>'
+          + '여유 — 0 PSU 쪽 <b>'+il.marginLo.toFixed(3)+'°</b> · 35 PSU 쪽 '+il.marginHi.toFixed(3)+'°'
+          + (il.covers ? (il.marginLo < 0.15
+              ? ' <span class="tag warn">0 PSU 가 가장자리</span>'
+              : ' <span class="tag ok">OK</span>')
+            : ' <span class="tag warn">보정점이 조명 밖</span>');
+      })(),
+      '2점 보정은 0 과 35 를 둘 다 봐야 한다. 주광선을 수조 염도(34)에 조준하면 0 PSU 가 부채꼴 끝에 걸린다'],
     ['광로 길이 (참고)', S.arm+' mm  <span style="color:var(--grey)">× '
       +(Math.round(S.folds)+1)+'구간 = '+(S.arm/(Math.round(S.folds)+1)).toFixed(1)+' mm/구간</span>',
       '분해능을 정하는 것은 직선 거리가 아니라 광로 길이'],
@@ -1314,17 +1508,23 @@ function rows(){
       '프리즘만 감싸는 최소는 '+g0.minHalf.toFixed(1)+' mm'],
     ['구조', '<span class="tag ok">허브 일체형</span> 덕트·칼라·새들 없음',
       '팔이 30 mm 급이면 블록이 팔 길이를 다 먹으므로 관통 채널이 단순하고 강함'],
-    ['인쇄 조리개', g0.stops.map(t => 'L'+t.L+' 개구 '+t.ap).join(' · '),
-      '국소 빔 폭에 맞춰 개구가 커짐. 비용 0'],
-    ['광창 높이 = 검출기 도달 폭', arrayTag(g0), '부채꼴 '+S.fan+'° × 팔 '+S.arm+' mm'],
-    ['화소 환산', (g0.winZ/CHIP.pitch).toFixed(0)+' px / '+CHIP.npx+' px',
-      '피치 63.5 µm. 부채꼴 4°는 어레이의 87 %를 씁니다 (2°면 43 %만)'],
+    ['인쇄 조리개', (g0.stops.length ? g0.stops.map(t => 'L'+t.L+' 개구 '+t.ap).join(' · ')
+        : '<span class="tag warn">검출측 없음 — 빔이 채널을 거의 채운다</span>')
+      + '<br><span style="color:var(--grey)">조명측 '+g0.stopsI.map(t => 'L'+t.L+' 개구 '+t.ap).join(' · ')+'</span>',
+      '개구 = 그 자리의 **추적 빔 폭** + 0.6. 어깨 1 mm 를 못 남기는 자리에는 두지 않는다'],
+    ['칩에 닿는 빔 폭', g0.beamChip.toFixed(2)+' mm = '+(g0.beamChip/CHIP.pitch).toFixed(0)
+      +' px  <span style="color:var(--grey)">(어레이 '+CHIP.arr+' mm 의 '
+      +(g0.beamChip/CHIP.arr*100).toFixed(0)+'%)</span>',
+      '★ 빔은 팔 끝으로 갈수록 좁아진다 — 곡면이 슬릿을 결상한다(허리 L≈90)'],
+    ['관통 채널 높이', g0.winZ+' mm', '구간 최대 빔 '+(g0.winZ-0.6).toFixed(1)+' + 편측 0.3'],
     ['권장 슬릿', Math.sqrt(P0.lam*1e-6*S.armD).toFixed(2)+' mm',
       '√(λ·검출팔) — 기하 번짐과 회절이 같아지는 최적점. 기하 번짐은 슬릿 × (검출/조명)'],
-    ['측정면 조명 패치', (16.51*(S.arm/250)*(S.fan/2)).toFixed(1)+' mm',
-      '경계는 면 위에서 1.42 mm 만 움직임 — 패치가 그 3배면 충분'],
-    ['필요 액적', '지름 '+(16.51*(S.arm/250)*(S.fan/2)+2.5).toFixed(1)
-      +' mm · 0.2 mm 막이면 '+(3.1416*Math.pow((16.51*(S.arm/250)*(S.fan/2)+2.5)/2,2)*0.2).toFixed(0)+' µL',
+    ['측정면 조명 패치', g0.patch.toFixed(2)+' mm', '광선추적. 옛 값 5.9 는 활꼴 60×20 @ 250 에서 맞춘 계수였다'],
+    ['측정면 경계 이동', (g0.sweep === null ? '—' : g0.sweep.toFixed(2)+' mm')
+      + (g0.sweep ? '  <span style="color:var(--grey)">패치가 '+(g0.patch/g0.sweep).toFixed(1)+'배</span>' : ''),
+      '0→35 PSU 동안 경계가 측정면 위를 움직이는 거리. 패치가 이보다 넉넉해야 한다'],
+    ['필요 액적', '지름 '+(g0.patch+2.5).toFixed(1)
+      +' mm · 0.2 mm 막이면 '+(3.1416*Math.pow((g0.patch+2.5)/2,2)*0.2).toFixed(0)+' µL',
       '뚜껑으로 눌러 얇은 막을 만들 때'],
     ['Δθc (0→35 PSU)', g0.dtc.toFixed(4)+'°', '전 염분 범위 신호'],
     ['허브 반쪽 인쇄 바닥면', bedTag(g0), '분할면을 바닥에 놓았을 때. 베드 220×220 기준']
@@ -1378,7 +1578,8 @@ function rows(){
  c('// ── 광학 ───────────────────────────────────────'),
  'ARM_DEG = '+deg(g1.armR).toFixed(4)+';',
  'EXIT_X  = '+g1.ex.toFixed(4)+';', 'EXIT_Z  = '+g1.ez.toFixed(4)+';',
- 'WIN_Z   = '+g1.winZ+';      '+c('// 부채꼴 '+S.fan+'deg x 검출팔 '+S.armD),
+ 'WIN_Z   = '+g1.winZ+';      '+kk('// 추적한 최대 빔 폭 + 0.6. 공식 아님'),
+ 'LEVER   = '+g1.lever.toFixed(1)+';     '+kk('// 광학 지렛대 (M 기준) = E·주광선 + 기계팔'),
  'ARM_I   = '+S.arm+';       '+c('// 조명팔 — 끝이 슬릿'),
  'ARM_D   = '+S.armD+';       '+c('// 검출팔 — 끝이 칩'),
  'REACH_I = '+g1.reachI+';       '+c('// 조명측 부품 적재 총 도달'),

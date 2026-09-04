@@ -35,8 +35,18 @@ import segment_optics as so
 # CONFIG
 # ----------------------------------------------------------------------
 CHORD, SAG = 60.0, 30.0          # 반원 60x30x10 (2026-09-02 확정)
-ARM_I = 40.0                     # 조명팔 [mm] — 액적(조명 패치)이 정한다
-ARM_CONF = 60.0                  # 검출팔 [mm] — 화소당 PSU 와 기계 안정성이 정한다
+
+# ---- 팔의 기준점 (2026-09-02 정정) -----------------------------------
+# segment_optics.detector_pos 의 arm 은 **측정점 M 부터**의 거리다
+# (ARM_MM 주석: "측정면 중심 -> 검출기 거리").
+# 그런데 기구 설계(docs/head.html, scad/)의 팔은 **곡면 통과점 E 부터** 잰다.
+# 반원은 곡면 굴절이 없어 광선이 M 을 지나는 하나의 직선이므로
+#     광학 지렛대 = E·주광선(= R = 30) + 기계팔
+# 이다. 기계팔 60 mm 로 만든 물건의 지렛대는 60 이 아니라 **90** 이다.
+# 예전에는 60 을 그대로 넣어 스팬이 9.0 px 로 나왔지만 실제는 13.5 px 다.
+ARM_I  = 40.0                    # 조명 기계팔 [mm] (E 기준) — 액적이 정한다
+ARM_MECH = 60.0                  # 검출 기계팔 [mm] (E 기준) — 부품 배치용
+ARM_CONF = 90.0                  # 검출 **광학 지렛대** [mm] (M 기준) = R + ARM_MECH
 FAN_CONF = 4.5                   # 확정 부채꼴 [deg]
 TARGET = 0.12                    # 목표 [PSU]
 NFRAME = 16                      # 프레임 평균
@@ -46,7 +56,8 @@ DNDT_PSU = 0.667                 # 두 액의 온도차 1 degC 당 [PSU/degC]  (
 SNR1 = 1300.0                    # 단일 프레임 SNR (데이터시트 + 10비트 ADC)
 
 # 팔 길이별 최적 슬릿 = sqrt(lambda*L)
-ARMS = [(30.0, 0.13), (40.0, 0.15), (60.0, 0.19), (100.0, 0.30), (160.0, 0.30)]
+# 아래 표의 팔도 **M 기준 지렛대**다 (기계팔로 읽지 말 것)
+ARMS = [(30.0, 0.13), (40.0, 0.15), (60.0, 0.19), (90.0, 0.23), (100.0, 0.30), (160.0, 0.30)]
 
 PIX = so.PIXEL_MM
 NS = so.n_water(so.T_C, 35.0)
@@ -196,14 +207,14 @@ def main():
           % (rss2, math.sqrt(max(0.0, TARGET ** 2 - rss2 ** 2))))
     print()
     print("[Q4] 기계 안정성 — 칩이 프리즘에 대해 옆으로 미끄러지면")
-    print("      검출팔  스팬   PSU/px   1 um 이동    0.05 PSU 허용 이동")
-    print("       [mm]   [px]             [PSU]         [um]")
-    for det in (40.0, 50.0, 60.0, 80.0, 100.0, 160.0):
+    print("      지렛대  스팬   PSU/px   1 um 이동    0.05 PSU 허용 이동   기계팔")
+    print("      (M기준)  [px]             [PSU]         [um]         (E기준)")
+    for det in (40.0, 50.0, 60.0, 80.0, 90.0, 100.0, 160.0):
         span = so.edge_width_psu(R, CY, CHIEF, det, 0.15)[5]
         ppp = 35.0 / (span / PIX)
         per_um = 1e-3 / PIX * ppp
-        print("      %5.0f  %5.1f  %6.2f   %8.4f     %8.2f%s"
-              % (det, span / PIX, ppp, per_um, 0.05 / per_um,
+        print("      %5.0f  %5.1f  %6.2f   %8.4f     %8.2f      %5.0f%s"
+              % (det, span / PIX, ppp, per_um, 0.05 / per_um, det - R,
                  "   <= 확정" if abs(det - ARM_CONF) < 1e-9 else ""))
     print("      >>> **절대** 안정성이 아니라 보정과 시료 측정 사이(1분)의 상대 이동입니다.")
     print("      >>> 균일 열팽창은 무해합니다 — 본체가 통째로 커지면 각도는 안 변하고")
@@ -211,10 +222,14 @@ def main():
     print("      >>> 위험한 것은 비대칭 이동. **뚜껑을 누르는 힘이 프리즘-칩 사이를")
     print("          휘게 하면 안 됩니다** — 힌지를 받침대로 물려 하중 경로를 우회시킬 것.")
     print()
-    print("[Q5] 부채꼴과 액적  (조명팔 %g mm 기준)" % ARM_I)
+    print("[Q5] 부채꼴과 액적  (조명 기계팔 %g mm 기준) — **광선추적**" % ARM_I)
+    print("      옛 표는 patch = 16.51*(arm/250)*(fan/2) 라는 맞춘 계수를 썼는데,")
+    print("      그 계수는 활꼴 60x20 @ 250 에서 뽑은 것이라 반원 60x30 에 안 맞는다.")
+    import illum_sim as _il
     for fan in (3.0, FAN_CONF, 6.0, 13.4):
-        reach = 2 * ARM_CONF * math.tan(fan / 2 * math.pi / 180)
-        patch = 16.51 * (ARM_I / 250.0) * (fan / 2.0)
+        _lo, _hi = _il.patch(ARM_I, 0.19, fan)
+        patch = _hi - _lo
+        reach = _il.beam_at(ARM_I, 0.19, fan, ARM_CONF) if hasattr(_il, "beam_at")                 else 2 * ARM_CONF * math.tan(fan / 2 * math.pi / 180)
         dia = patch + 2.5
         vol = math.pi * (dia / 2) ** 2 * 0.2
         print("      부채꼴 %5.1f deg -> 도달 %4.2f mm (%4.0f px) · 패치 %4.1f mm"
