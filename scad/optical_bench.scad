@@ -28,14 +28,12 @@
 //    그래서 본체를 한 몸으로 인쇄하고, 분할면(Y=0)을 바닥에 놓습니다.
 // ============================================================================
 
-PART = "preview";
-//  "hub_a"     본체 반쪽 A (Y<0).  분할면을 바닥에 놓고 인쇄 — 서포트 불필요
-//  "hub_b"     본체 반쪽 B (Y>0)
-//  "base"      받침대 (바닥판 + 홈턱 + 힌지 기둥 + M4 수평조절 3점)
-//  "cap"       차광 캡
-//  "slit_plug" 조명측 플러그 — 슬릿판.  나중에 렌즈판으로 갈아끼운다
-//  "section"   분할면 단면 (검증용 — 인쇄용 아님)
-//  "preview"   조립 미리보기 (인쇄용 아님)
+/* [부품 선택] */
+// OpenSCAD 의 Window > Customizer 를 켜면 아래가 드롭다운으로 나옵니다.
+// 고르고 F5(미리보기) / F6(렌더) / F7(STL 내보내기).
+PART = "preview"; // [preview:조립 미리보기 (인쇄용 아님), load:★ B 에 부품 얹는 자리 (조립 설명), hub_a:본체 반쪽 A (Y<0) — 분할면을 바닥에, hub_b:본체 반쪽 B (Y>0), base:받침대 — 바닥판+홈턱+힌지기둥+M4 3점, cap:차광 캡, slit_plug:조명측 플러그 (슬릿판), section:분할면 단면 (검증용), fitcheck:간섭 검사 (비어야 정상), thincheck:얇은 살 검사]
+
+/* [Hidden] */
 
 $fn = 180;
 
@@ -59,8 +57,8 @@ ARM_I   = 40;       // 조명팔 — 끝이 슬릿
 ARM_D   = 60;       // 검출팔 — 끝이 칩
 REACH_I = 61;       // 조명측 부품 적재 총 도달
 REACH_D = 72;       // 검출측
-STOPS_I = [[13.6,1.67],[24.8,2.55],[35.2,3.37]];
-STOPS_D = [[20.4,2.2],[37.2,3.52],[52.8,4.75]];
+STOPS_I = [[30.2,1.37],[21,2.1],[12,2.8]];   // 조명측은 슬릿(L=ARM_I)에서 퍼진다 — 팔 끝에 가까울수록 좁다
+STOPS_D = [[9.8,1.37],[19,2.1],[28,2.8]];    // 검출측은 측정점에서 퍼진다
 
 // ── 부품 ───────────────────────────────────────
 CHIP_L = 9.4; CHIP_W = 3; CHIP_H = 1.2;   // TSL1401CL CL 패키지
@@ -76,7 +74,7 @@ WALL    = 3.5;  M3 = 3.4;
 // ── 받침대 ─────────────────────────────────────
 BASE_W = 220; BASE_D = 70; BASE_T = 6;
 BASE_Z = -49;     // 바닥판 윗면 = 블록 바닥 (뜨지 않는다)
-RAIL_LEN = 90; RAIL_T = 5; RAIL_H = 15;
+RAIL_LEN = 90; RAIL_T = 5; RAIL_H = 19;   // ★ 관통 M3 구멍 위로 살 4.3 mm. 15 면 0.30 mm 였다
 
 // ============================================================================
 //  유도값
@@ -251,8 +249,6 @@ module hub_half(side) {
 //      관통해 본체를 붙든다 (M3 x 35). 새 나사가 늘지 않는다.
 // ============================================================================
 FEET = [[-88.2, BASE_D*0.34], [XC, -BASE_D*0.34], [96.6, BASE_D*0.34]];
-HINGE_Y = -(BASE_D/2 - 7);
-HINGE_Z = 7;
 
 module base() {
     difference() {
@@ -264,19 +260,11 @@ module base() {
             for (sd = [-1, 1])
                 translate([XC, sd*(HUB_Y/2 + RAIL_T/2 + 0.3), BASE_Z + RAIL_H/2])
                     cube([RAIL_LEN, RAIL_T, RAIL_H], center = true);
-            // 힌지 기둥 2개 — 닫는 힘이 **본체를 거치지 않고** 바닥판으로 빠지게 한다
-            for (sx = [-1, 1])
-                translate([sx*34, HINGE_Y, BASE_Z + (HINGE_Z - BASE_Z)/2])
-                    cube([10, 6, HINGE_Z - BASE_Z], center = true);
         }
         // 홈턱 관통 M3 (본체 고정 겸용)
         for (p = RAIL_BOLTS)
             translate([p[0], 0, p[1]]) rotate([90, 0, 0])
                 cylinder(h = BASE_D + 4, d = M3, center = true);
-        // 힌지 핀 구멍
-        for (sx = [-1, 1])
-            translate([sx*34, HINGE_Y, HINGE_Z]) rotate([0, 90, 0])
-                cylinder(h = 20, d = M3, center = true);
         // M4 수평조절 3점 — 삼각 지지라 덜컹거리지 않는다
         for (f = FEET)
             translate([f[0], f[1], BASE_Z - BASE_T/2])
@@ -285,32 +273,46 @@ module base() {
 }
 
 // ============================================================================
-//  차광 캡 — 이 장치의 차광 본체.  내면은 무광 검정.
-//    시료 쪽 외광은 검출기의 어두운 쪽만 비대칭으로 채워 경계를 밀어낸다.
-//    ⚠ 힌지가 **바닥판**에 달려 있으므로 닫는 힘이 프리즘-칩 사이 본체를 휘게 하지 않는다.
-//      (검출팔 60 mm 에서 칩이 1 µm 미끄러지면 0.061 PSU)
+//  차광 캡 — **상부 전체를 덮는 슈라우드**.  힌지 없음. 들어서 벗기고 덮는다.
+//
+//  2026-09-02 : 힌지 달린 작은 뚜껑에서 이것으로 바꿨다. 이유가 두 개다.
+//   (1) 차광 — 배선 슬롯이 블록의 **양 끝면에 열려** 있고, 검출측 슬롯은 칩 포켓에
+//       바로 이어진다. 위만 덮으면 그 구멍으로 외광이 곧장 검출기에 든다.
+//       시료 쪽 외광은 검출기의 어두운 쪽만 비대칭으로 채워 경계를 밀어낸다(§5-1).
+//   (2) 하중 — 네 벽이 **바닥판에 직접 내려앉아** 블록을 아예 건드리지 않는다.
+//       힌지도, 61 mm 기둥도 없다. 프리즘-칩 사이를 휘게 할 경로 자체가 없어졌다.
+//       (검출팔 60 mm 에서 칩이 1 µm 미끄러지면 0.061 PSU)
+//
+//  ★ 내면은 무광 검정으로. 이것이 이 장치의 차광 본체다.
+//  ★ 인쇄는 열린 면을 위로(천장을 바닥에) 놓는다 — 서포트가 필요 없다.
 // ============================================================================
-CAP_X = 76; CAP_T = 3; CAP_SIDE = 10; CAP_SKIRT = -6;
+COV_T   = 2;                  // 벽 두께
+COV_CLR = 2;                  // 블록과의 편측 여유 (X)
+COV_HY  = 19;                 // 안쪽 반폭. 홈턱(14.15)과 가운데 M3 머리(약 16.7)를 넘겨야 한다
+COV_TOP = HUB_TOP + 3;        // 안쪽 천장 z = 6
+COV_NW  = 10;                 // 배선 노치 폭
+COV_NZ  = -36;                // 배선 노치 윗변 — 슬롯(-44~-36.7)보다 위
+//  ★ 노치를 y=0 에 두면 안 된다. 블록의 배선 슬롯이 y=0 을 중심으로 +-3 이라
+//    노치와 **일직선으로 뚫려** 외광이 곧장 칩까지 든다. 옆으로 비켜 놓으면
+//    선은 구부러져 나가고 빛은 직선으로 못 들어온다.
+COV_NY  = 12;                 // 노치 중심 y (슬롯의 +-3 과 겹치지 않는다)
 
 module cap() {
+    xi0 = -(HUB_L + COV_CLR);          // 안쪽 x 범위
+    xi1 =   HUB_R + COV_CLR;
+    xc  = (xi0 + xi1)/2;
+    xw  = xi1 - xi0;
     difference() {
-        union() {
-            // 덮개판
-            translate([0, (HUB_Y/2 + CAP_SIDE + HINGE_Y)/2, HUB_TOP + CAP_T/2])
-                cube([CAP_X, HUB_Y/2 + CAP_SIDE - HINGE_Y, CAP_T], center = true);
-            // 앞쪽 치마 — 낮게 스치는 옆빛을 막는다.
-            //   측정창 바닥이 z=0 이므로 z=-6 까지만 내려오면 그늘이 완전히 진다.
-            //   바닥판까지 내리면 여닫는 반경만 커지고 얻는 것이 없다.
-            translate([0, HUB_Y/2 + CAP_SIDE - CAP_T/2, (HUB_TOP + CAP_T + CAP_SKIRT)/2])
-                cube([CAP_X, CAP_T, HUB_TOP + CAP_T - CAP_SKIRT], center = true);
-            // 힌지 귀 2개
-            for (sx = [-1, 1])
-                translate([sx*34, HINGE_Y, HINGE_Z])
-                    rotate([0, 90, 0]) cylinder(h = 8, d = 9, center = true);
-        }
-        for (sx = [-1, 1])
-            translate([sx*34, HINGE_Y, HINGE_Z]) rotate([0, 90, 0])
-                cylinder(h = 20, d = M3, center = true);
+        translate([xc, 0, (BASE_Z + COV_TOP + COV_T)/2])
+            cube([xw + 2*COV_T, 2*(COV_HY + COV_T), COV_TOP + COV_T - BASE_Z], center = true);
+        // 속 — 아래로 열린다
+        translate([xc, 0, (BASE_Z - 1 + COV_TOP)/2])
+            cube([xw, 2*COV_HY, COV_TOP - BASE_Z + 1], center = true);
+        // 배선 노치 — 양 끝벽에 아래로 열린 슬롯. 다리를 밖으로 뺀다.
+        //   ★ y=0 에서 비켜 놓아 블록의 배선 슬롯과 **직선으로 통하지 않게** 한다.
+        for (x = [xi0, xi1])
+            translate([x, COV_NY, (BASE_Z - 1 + COV_NZ)/2])
+                cube([2*COV_T + 2, COV_NW, COV_NZ - BASE_Z + 1], center = true);
     }
 }
 
@@ -355,6 +357,64 @@ module slit_plug() {
 }
 
 // ============================================================================
+//  조립 설명 — **반쪽 B 가 부품을 싣는 쪽**이다.
+//    분할면의 랩 조인트(SEAM)가 채널 둘레에서 B 쪽으로 1 mm 넘어와 있으므로
+//    B 의 홈이 더 깊다 : 플러그 6 mm (A 는 4) · 칩 2.7 mm (A 는 0.7).
+//    그래서 B 를 분할면이 위로 오게 눕혀 놓고 **떨어뜨려 얹은 뒤** A 를 덮는다.
+//    밀어 넣는 것이 아니다 — 어느 쪽으로도 뚫려 있지 않다.
+// ============================================================================
+CHIP_ARR = 8.064;   // 어레이 길이. 데이터시트 Figure 10
+
+// TSL1401CL 이 놓이는 자세 — 어레이 길이 방향이 **부채꼴 방향(면내)**
+module chip() {
+    on_arm(1, ARM_D + CHIP_H/2 + 0.15) {
+        color("#14181C") cube([CHIP_L, CHIP_W, CHIP_H], center = true);
+        // 수광창 : 프리즘을 바라보는 면에 있다
+        color("#6FC8F0") translate([0, 0, -CHIP_H/2 - 0.06])
+            cube([CHIP_ARR, 0.8, 0.12], center = true);
+    }
+}
+
+module loaded_b() {
+    color("Silver", 0.55) hub_half(1);
+    color("Tomato", 0.85) on_arm(-1, ARM_I) slit_plug();
+    chip();
+    color("SkyBlue", 0.35) prism(0);
+}
+
+// ============================================================================
+//  얇은 살 검사 — 단면에서 **THIN*2 보다 얇은 살**만 남겨 보여 준다.
+//    열림(줄였다 늘리기)은 얇은 것을 지운다. 원본에서 그걸 빼면 얇은 데만 남는다.
+//    이 프로젝트에서 같은 실수가 세 번 났다 (전부 이 검사에 걸렸을 것들이다) :
+//      · 검출 채널이 블록 바닥을 0.07 mm 뚫음
+//      · 힌지 기둥 꼭대기가 핀 구멍과 같은 높이 (구멍이 아니라 홈)
+//      · 홈턱 관통 M3 구멍 위 살 0.30 mm
+//
+//    ⚠ **볼록한 모서리는 원래 걸린다** (열림이 모서리를 둥글리기 때문). 개수가 아니라
+//      **면적**으로 판단할 것. 지금 남는 것은 전부 의도한 것이다 :
+//        · 12.7 mm² x=±27 z=+1.5  — 측정창 턱(프리즘을 무는 살). 두께 HUB_TOP=3
+//        · 1.0~2.0 mm² x6 쌍      — 인쇄 조리개의 어깨. 설계상 1.0~1.7 mm
+//        · 2.3 / 1.0 mm² x=-83~-86 — 플러그 캐비티와 LED 배선 슬롯이 만나는 쐐기, 1.8 mm
+//      **이 목록에 없는 것이 나오면 그것이 버그다.**
+// ============================================================================
+THIN = 1.5;   // 반경. 2*THIN = 3 mm 미만이 잡힌다
+
+module thin_of() {
+    difference() {
+        children();
+        offset(r = THIN) offset(r = -THIN) children();
+    }
+}
+
+module thincheck() {
+    // 본체 — 분할면 단면
+    thin_of() projection(cut = true) rotate([-90, 0, 0]) body_full();
+    // 받침대 — 홈턱을 지나는 단면
+    thin_of() projection(cut = true) rotate([-90, 0, 0])
+        translate([0, HUB_Y/2 + RAIL_T/2 + 0.3, 0]) base();
+}
+
+// ============================================================================
 module preview() {
     color("Silver",  0.35) body_full();
     color("SkyBlue", 0.55) prism(0);
@@ -371,4 +431,10 @@ else if (PART == "slit_plug") slit_plug();
 // 검증용 : 분할면(Y=0) 단면. docs/head.html "도면 2" 와 대조한다.
 //   openscad --backend=manifold -o section.dxf -D "PART=\"section\"" optical_bench.scad
 else if (PART == "section")   projection(cut = true) rotate([-90, 0, 0]) body_full();
+else if (PART == "load")      loaded_b();
+// 검증용 : 닫힌 자세에서 받침대와 캡이 서로 파고드는지. **비어 있어야 한다.**
+//   openscad -o fit.stl -D "PART=\"fitcheck\"" optical_bench.scad
+//   -> "Current top level object is empty" 가 나오면 간섭 없음.
+else if (PART == "fitcheck")  intersection() { cap(); union() { base(); body_full(); } }
+else if (PART == "thincheck") thincheck();
 else                          preview();

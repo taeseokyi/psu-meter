@@ -371,8 +371,10 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
     <li><b>차광 캡</b> — 시료를 덮는 뚜껑이 <b>이 장치의 차광 본체</b>입니다.
       물로 들어온 외광은 검출기의 어두운 쪽만 비대칭으로 채워 경계를 밀어냅니다(§5-1).
       내면은 무광 검정으로.
-      ⚠ <b>힌지는 닫는 힘이 받침대로 빠지게</b> 하십시오 — 누르는 힘이 프리즘–칩 사이
-      본체를 휘게 하면 그게 곧 비반복 오차입니다(칩 1 µm 이동 = 0.061 PSU).</li>
+      <b>힌지가 없습니다.</b> 네 벽이 <b>바닥판에 직접 내려앉아</b> 본체를 아예 건드리지 않으므로,
+      누르는 힘이 프리즘–칩 사이를 휘게 할 경로 자체가 없습니다(칩 1 µm 이동 = 0.061 PSU).
+      들어서 벗기고 덮습니다. ⚠ <b>배선 노치는 블록의 배선 슬롯과 일직선이 되면 안 됩니다</b> —
+      그러면 외광이 곧장 칩까지 듭니다. 그래서 노치를 y 로 12 mm 비켜 놓았습니다.</li>
   </ol>
 </section>
 
@@ -400,7 +402,7 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
   <b>0.82 µm</b> 안이어야 합니다(40 mm 면 0.55 µm). 절대값이 아니라 보정과 시료 측정
   사이의 상대 이동이고, <b>균일 열팽창은 0.0024 PSU/°C 로 무해</b>합니다.
   ⚠ <b>그래서 뚜껑을 누르는 힘이 프리즘–칩 사이를 휘게 하면 안 됩니다</b> —
-  힌지를 받침대로 물려 하중 경로를 우회시키십시오.</p>
+  그래서 뚜껑을 <b>바닥판에 내려앉는 슈라우드</b>로 만들어 하중 경로를 아예 없앴습니다.</p>
   <p><b>남은 최대 미검증 위험은 표면 굴곡</b>입니다 (<code>ILLUMINATION.md</code> §3-2 —
   0.5~2 mm 주기에 λ/20). 팔을 짧게 해도 나아지지 않지만, 부채꼴을 4.5° 로 줄여
   패치가 5.9 mm 가 된 것이 완화입니다. 그리고 <b>스팬이 6 화소뿐</b>이라 그 사이의
@@ -542,12 +544,25 @@ function geom(){
   const hubX = hubL + hubR;
   const padOff = 0, bossL = 0, padL = 0;
   const bbX = hubX;
-  /* 인쇄 조리개 — 개구가 국소 빔 폭에 맞게 커진다 */
-  const stopsFor = arm => [0.34, 0.62, 0.88].map(f => ({
-    L: +(arm*f).toFixed(1),
-    ap: +(2*arm*f*Math.tan(S.fan/2*D) + 0.6).toFixed(2)
-  }));
-  const stops = stopsFor(S.armD), stopsI = stopsFor(S.arm);
+  /* 인쇄 조리개 — 개구는 **그 자리의 빔 폭**에 맞춘다. 2026-09-02 정정 두 가지.
+     (1) 빔의 원점이 좌우가 다르다. 검출측은 **측정점**에서 퍼지고(L 이 클수록 넓다),
+         조명측은 **슬릿(팔 끝)** 에서 퍼진다(팔 끝에 가까울수록 좁다).
+         둘 다 2*L*tan 을 쓰고 있어서 조명측 첫 조리개가 개구 1.67 인데 그 자리의
+         빔은 2.07 이었다 — **조명 부채꼴을 잘라내고 있었다.**
+     (2) 어깨(개구와 채널 벽 사이 살)가 없으면 조리개가 아니다. 옛 배치의 검출측
+         세 번째는 개구 4.75 / 채널 4.8 이라 어깨가 **0.025 mm** 였다 — 인쇄도 안 된다.
+     그래서 조리개는 **빔 원점에서 dmax 안**에만 놓는다. 팔 끝 쪽은 빔이 채널을
+     꽉 채워 조리개가 할 일이 없다. */
+  const SHOULDER = 1.0;
+  const stopsFor = (arm, fromEnd) => {
+    const t = Math.tan(S.fan/2*D);
+    const dmax = (winZ/2 - SHOULDER - 0.3)/t;       // 빔 원점에서의 유효 한계
+    return [0.35, 0.68, 1.0].map(f => {
+      const d = Math.min(dmax*f, arm);              // 빔 원점에서의 거리
+      return {L: +(fromEnd ? arm - d : d).toFixed(1), ap: +(2*d*t + 0.6).toFixed(2)};
+    });
+  };
+  const stops = stopsFor(S.armD, false), stopsI = stopsFor(S.arm, true);
   const endX0 = tr.P[0] + S.arm*Math.cos(armR);
   const endZ0 = tr.P[1] - S.arm*Math.sin(armR);
   const nw0 = nWater(P0.T,0,P0.lam), nw35 = nWater(P0.T,35,P0.lam);
@@ -562,7 +577,11 @@ function geom(){
     /* 블록 바닥이 바닥판 윗면에 **닿는다**. 예전 -(hubZ+1) 은 1 mm 떠 있어서
        수직 기준면이 없었다 — 홈턱 옆면만으로 버티면 뚜껑 닫는 힘에 흔들린다. */
     baseZ: -hubZ, baseL: hubL + 12, baseR: hubR + 12,
-    rail: {len:90, t:5, h:15},
+    /* 홈턱 높이는 손으로 정하면 안 된다 — 관통 M3 구멍 **위로 살이 남아야** 한다.
+       15 로 두었을 때 구멍 위가 0.30 mm 였다 (2026-09-02 정정). 볼트 z 는
+       프리즘 포켓을 피해 따로 정해지므로, 홈턱을 거기에 맞춰 따라가게 한다. */
+    rail: {len:90, t:5,
+           h: Math.max(15, Math.ceil(-(h + 6) + P0.m3/2 + P0.wall + hubZ))},
     baseW: hubX + 24, baseD: 70, baseT: 6,
     /* 0.74 면 오른쪽 볼트가 배선 슬롯을 관통한다 (SCAD 단면에서 확인, 2026-09-02) */
     bolts: [[-(hubL-6), -hubZ*0.60], [hubR-6, -hubZ*0.60],
@@ -685,7 +704,8 @@ function drawLayout(){
       g.appendChild(el('polygon', {points:[[0,0], ep[0], ep[1]].map(q => X(sd*q[0])+','+Z(q[1])).join(' '),
         fill:'var(--amb)', opacity:.16}));
 
-    const L = legs(g0, sd)[0], u = L.u, v = L.v, AR = armOf(sd), ST = g0.stopsFor(AR);
+    const L = legs(g0, sd)[0], u = L.u, v = L.v, AR = armOf(sd),
+          ST = g0.stopsFor(AR, sd < 0);
     const Pt = (t, w, sg) => [L.A[0] + u[0]*t + v[0]*sg*w/2, L.A[1] + u[1]*t + v[1]*sg*w/2];
     /* 광선 밴드 */
     const q = [Pt(0, 0, 1), Pt(AR, 2*AR*tfh, 1), Pt(AR, 2*AR*tfh, -1), Pt(0, 0, -1)];
@@ -861,7 +881,7 @@ function drawHub(){
                Pt(AR + 1, chW, -1), Pt(-3, chW, -1)];
     g.appendChild(el('polygon', {points:q.map(t => X(t[0])+','+Z(t[1])).join(' '),
       fill:'var(--sheet)', stroke:'var(--ink-2)', 'stroke-width':1}));
-    g0.stopsFor(AR).forEach(st => {
+    g0.stopsFor(AR, sd < 0).forEach(st => {
       [1,-1].forEach(sg => {
         const p1 = Pt(st.L, chW, sg), p2 = Pt(st.L, st.ap, sg);
         g.appendChild(el('line', {x1:X(p1[0]), y1:Z(p1[1]), x2:X(p2[0]), y2:Z(p2[1]),
@@ -1107,7 +1127,7 @@ function build3D(){
       gArm.add(chip);
     }
     /* 인쇄 조리개 */
-    g0.stopsFor(AR).forEach(st => {
+    g0.stopsFor(AR, !isDet).forEach(st => {
       const bs = new THREE.Shape(), o = g0.padW/2;
       bs.moveTo(-o,-o); bs.lineTo(o,-o); bs.lineTo(o,o); bs.lineTo(-o,o); bs.closePath();
       const bh = new THREE.Path();
@@ -1326,16 +1346,15 @@ function rows(){
       +(g0.hubZ+P0.top), '각 1',
       '프리즘 포켓 + 관통 채널 + 인쇄 조리개 + 플러그 캐비티 + 칩 포켓 + 배선 슬롯이 <b>한 부품에</b>'],
     ['base', '받침대', g0.baseW+' × '+g0.baseD+' × '+(-g0.baseZ+g0.baseT+P0.top), '1',
-      '바닥판 + 홈턱 + <b>힌지 기둥</b> + M4 3점. <b>충진을 아끼지 마십시오</b>'],
-    ['cap', '<b>차광 캡</b>', '76 × 51 × 46', '1',
-      '시료를 덮어 상부 외광 차단. <b>힌지가 받침대에 달려</b> 닫는 힘이 본체를 안 휘게 한다'],
+      '바닥판 + 홈턱 + M4 3점. <b>충진을 아끼지 마십시오</b>'],
+    ['cap', '<b>차광 슈라우드</b>', '204 × 42 × 57', '1',
+      '<b>상부 전체를 덮는다.</b> 벽이 바닥판에 내려앉아 본체를 안 건드린다. 힌지 없음'],
     ['slit_plug', '조명측 플러그', (PLUG.w-0.3)+' × '+(PLUG.y-0.3)+' × 22.6', '1',
       '커터칼 날 2장 · 유산지 · LED. <b>분할면에서 떨어뜨려 넣는다.</b> 렌즈판으로 갈아끼울 자리'],
     ['—', '프리즘 누름쇠 <span class="tag ok">없어짐</span>', '—', '0',
       '측정창 턱(|x| '+g0.xw+'~'+g0.xp.toFixed(1)+')이 프리즘을 위에서 물어 준다 — 인쇄로 해결'],
     ['M3 × 35', '조립 겸 받침대 고정', '가운데 2본', '2', '홈턱–본체–홈턱 관통. 나사가 늘지 않는다'],
     ['M3 × 25', '클램셸 조임', '바깥 2본', '2', '너트 포함'],
-    ['M3 × 20', '힌지 핀', '—', '2', '캡 귀 ↔ 받침대 기둥'],
     ['M4 × 12', '수평조절 발 + 너트', '—', '3', '삼각 지지']
   ];
     document.getElementById('parts-body').innerHTML = P.map(r =>
