@@ -59,6 +59,14 @@ DNDT_PSU = 0.667                 # 두 액의 온도차 1 degC 당 [PSU/degC]  (
 # 보정한다. 두 읽기의 양자화 오차가 독립이므로 차에는 sqrt(2) 가 붙는다.
 # 예전에는 한 번 읽기만 세어 0.0417 로 잡았지만 실제 규약은 두 번 읽기다.
 T_READS = 2                      # 액적마다 읽는다 (보정액 1 + 시료 1)
+# ---- 증발 (2026-09-02) -----------------------------------------------
+# 20 uL 액적을 열어 두면 분당 0.3~0.9 PSU 로 농축된다 — 예산 전체의 10배.
+# 다만 표준액과 시료를 **같은 부피·같은 대기시간**으로 다루면 농축 비율이
+# 같아 2점 보정에서 정확히 상쇄된다. 남는 것은 타이밍 편차 몫뿐이다.
+# HANDOFF §6-1 규약: 부피 고정, T_settle 고정(+-5 s), 뚜껑 즉시 닫기.
+EVAP_PSU_PER_MIN = 0.58          # 중간값 (0.2 kg/m2h 가정)
+T_JITTER_S = 5.0                 # 두 액적의 대기시간 편차 [s]
+EVAP_TERM = EVAP_PSU_PER_MIN * T_JITTER_S / 60.0
 T_TERM = math.sqrt(T_READS) * T_SENSOR * DNDT_PSU
 SNR1 = 1300.0                    # 단일 프레임 SNR (데이터시트 + 10비트 ADC)
 
@@ -198,6 +206,7 @@ def main():
          prnu_bias(ARM_CONF, slit_conf, FLAT_RESID)[0]),
         ("2점 보정 — 곡선 피팅 후 잔차", 0.005),
         ("온도 (센서 %.4f x %.3f x sqrt%d)" % (T_SENSOR, DNDT_PSU, T_READS), T_TERM),
+        ("증발 (대기시간 편차 %.0f s)" % T_JITTER_S, EVAP_TERM),
     ]
     for name, v in items:
         print("      %-34s %.4f PSU" % (name, v))
