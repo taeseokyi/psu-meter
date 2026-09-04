@@ -35,7 +35,7 @@ CHORD_MM, SAG_MM = 60., 30.      # 확정 형상
 ARM_D = 90.                      # 검출 지렛대 (M 기준) = R 30 + 기계팔 60
 R,CY=so.segment_geometry(CHORD_MM, SAG_MM)
 n_w=lambda S: so.n_water(so.T_C,S)
-TH_INT=so.theta_c(34.)                                  # 내부 임계각 63.85
+TH_INT=so.theta_c(so.S_AIM)      # 주광선 조준 = 보정범위 중앙(17.5 PSU)
 _,CHIEF,_=so.trace(0.,TH_INT,R,CY)                      # 외부 주광선 방향
 C_DIR=CHIEF; C_PERP=(-CHIEF[1],CHIEF[0])
 A_DIR=(-CHIEF[0],CHIEF[1])                              # 조명팔 (거울상)

@@ -312,7 +312,7 @@ footer{margin-top:64px; border-top:1px solid var(--rule); background:var(--sheet
     않고 인쇄도 안 되는 형상이었습니다. <code class="mono">P_CZ = P_R - P_SAG</code> 로 고쳤습니다 —
     <b>곡률 중심은 측정면 위(시료 쪽)에 있습니다.</b></p>
     <p><b>2026-09-02 정정 2 — 블록 깊이.</b> <code class="mono">hubZ</code> 가 프리즘만 보고
-    <code class="mono">ceil(사지타 + 2·벽 + 5) = 42</code> 로 정해져 있었습니다. 팔이 26.15° 아래로 내려가므로
+    <code class="mono">ceil(사지타 + 2·벽 + 5) = 42</code> 로 정해져 있었습니다. 팔이 26.41° 아래로 내려가므로
     <b>검출 채널이 L = 59.8 mm 에서 블록 바닥을 뚫고 나갔고, 칩이 바로 L = 60 mm</b> 입니다
     (칩 아래 살 −0.07 mm). 3D 에서 LED·칩 상자가 블록 밖 아래에 떠 있던 것이 이것입니다.
     깊이를 팔 끝 기준으로 다시 잡아 <b>48 mm</b> 가 되었고(최심점은 칩 포켓 — 어레이 방향 ±4.7 mm),
@@ -593,6 +593,14 @@ function illumTrace(g0, armS, pOff, delta, lever){
   return {x: x, inc: inc, X: (H[0]-C[0])*pp[0] + (H[1]-C[1])*pp[1]};
 }
 
+/* ★ 주광선 조준 염도 (2026-09-02 신설).
+   기구의 팔 각도를 정하는 것은 "주광선을 어느 염도에 맞추느냐"다.
+   전에는 수조 염도(34)에 맞췄는데, 34 는 35 와 거의 같아서 2점 보정에 필요한
+   0~35 PSU 가 전부 조명 부채꼴의 아래쪽 끝에 몰렸다 —
+   RO-DI(0 PSU) 여유가 0.046° 밖에 없었다(35 쪽은 0.561°).
+   보정 범위 한가운데에 조준하면 양쪽이 0.30° 로 균형이 잡히고,
+   팔 각도는 26.152 → 26.411°, 0.26° 만 움직인다. */
+const AIM_PSU = 17.5;
 const P0 = {T:26, lam:590, np:1.491, wall:3.5, fit:0.35, top:3, m3:3.4};
 /* TSL1401CL CL 패키지 — docs/datasheets/TSL1401CL.pdf Figure 10 */
 const CHIP = {L:9.4, W:3.0, H:1.2, arr:8.064, pitch:0.0635, npx:128, off:0.305};
@@ -622,8 +630,8 @@ function geom(){
   const a = S.chord/2, h = S.sag;
   const R = (a*a + h*h)/(2*h);
   const cz = R - h;
-  const nw = nWater(P0.T, S.psu, P0.lam);
-  const tc = Math.asin(nw/P0.np);
+  const nw = nWater(P0.T, S.psu, P0.lam);              // 운용점 — 표에 보여 주는 값
+  const tc = Math.asin(nWater(P0.T, AIM_PSU, P0.lam)/P0.np);   // ★ 주광선은 조준 염도로
   const tr = traceRay(0, tc, R, cz, P0.np);
   const armR = Math.atan2(-tr.dir[1], tr.dir[0]);
   /* ★ 광학 지렛대는 **측정점 M 부터**다. 기계 팔(S.armD)은 곡면 통과점 E 부터고,
@@ -1452,7 +1460,9 @@ function rows(){
     ['곡률 반지름 R', g0.R.toFixed(3)+' mm', '(현/2)² + 사지타² / 2·사지타'],
     ['곡률 중심 z', (g0.cz>=0?'+':'')+g0.cz.toFixed(3)+' mm', semi ? '측정점과 일치 — 반원' : '측정면 위(시료 쪽)'],
     ['시료 굴절률 n', g0.nw.toFixed(5), 'OSU/Parrish, '+P0.T+' ℃ · '+S.psu+' PSU · '+P0.lam+' nm'],
-    ['임계각 θc', deg(g0.tc).toFixed(4)+'°', 'asin(n / '+P0.np+')'],
+    ['임계각 θc <span style="color:var(--grey)">(조준 '+AIM_PSU+' PSU)</span>',
+      deg(g0.tc).toFixed(4)+'°',
+      '★ 팔 각도를 정하는 것은 조준 염도다. 보정 범위(0~35)의 한가운데에 맞춘다'],
     ['곡면 입사각', deg(g0.incR).toFixed(3)+'°', semi ? '수직 통과 — 굴절 없음' : '여기서 한 번 더 꺾임'],
     ['곡면 통과점 E', g0.ex.toFixed(3)+' , '+g0.ez.toFixed(3)+' mm', '팔 축이 지나는 실제 점'],
     ['팔 각도', '<b>'+deg(g0.armR).toFixed(4)+'°</b>', '현 기준 아래로'],

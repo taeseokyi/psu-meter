@@ -66,7 +66,7 @@ DTH_DS = so.dtheta_dS()
 TC = math.asin(NS / NP)
 
 R, CY = so.segment_geometry(CHORD, SAG)
-_P, CHIEF, _INC = so.trace(0.0, so.theta_c(34.0), R, CY)
+_P, CHIEF, _INC = so.trace(0.0, so.theta_c(so.S_AIM), R, CY)   # 조준 = 보정범위 중앙
 
 
 # ----------------------------------------------------------------------

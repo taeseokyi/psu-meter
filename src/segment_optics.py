@@ -40,7 +40,15 @@ PIXEL_MM   = 0.0635    # TSL1401CL 픽셀 피치 [mm]
 SLIT_MM    = 0.2       # 측정면에서의 조명 스폿 폭 [mm]
 N_PIXELS   = 128       # TSL1401CL 화소 수
 MAX_SPAN_PX= 110.0     # 0~35 PSU 스팬 상한. 128 px 안에 두 보정점이 들어와야 한다
-S_TANK     = 34.0      # 수조 목표 염도 [PSU]
+S_TANK     = 34.0      # 수조 목표 염도 [PSU] — 운용점(민감도·분산 계산용)
+# ---- 주광선 조준 염도 (2026-09-02 신설) ------------------------------
+# 기구의 팔 각도를 정하는 것은 **주광선을 어느 염도에 맞추느냐**다.
+# 예전에는 S_TANK(34)에 맞췄는데, 34 는 35 와 거의 같아서 2점 보정에 필요한
+# 0~35 PSU 범위가 전부 조명 부채꼴의 아래쪽 끝에 몰렸다 —
+# RO-DI(0 PSU) 쪽 여유가 0.046 deg 밖에 없었다(35 쪽은 0.561).
+# 보정 범위의 **한가운데**에 맞추면 양쪽이 0.30 deg 로 균형이 잡히고,
+# 팔 각도는 26.152 -> 26.411 deg, 0.26 deg 만 움직인다.
+S_AIM      = 17.5      # 주광선 조준 = (0 + 35)/2 [PSU]
 SUBPIXEL   = 1/20      # design_calc.py 가 가정하는 에지 검출 성능 [px]
 
 # 검토할 프리즘 형상: (이름, 현 길이 mm, 사지타 mm)
@@ -189,7 +197,8 @@ def spectral_mm(arm, n_prism=N_PRISM):
 def analyze(name, chord, sagitta):
     R, cy = segment_geometry(chord, sagitta)
     t_tank = theta_c(S_TANK)
-    P, chief, inc = trace(0.0, t_tank, R, cy)
+    t_aim = theta_c(S_AIM)                     # 주광선은 보정범위 중앙에 조준
+    P, chief, inc = trace(0.0, t_aim, R, cy)
     print("[%s]" % name)
     print("   R = %.2f mm, 원 중심 y = %+.2f mm (%s)"
           % (R, cy, '측정면 위 = 정확한 반원' if abs(cy) < 1e-9
@@ -249,7 +258,7 @@ def edge_width_psu(R, cy, chief, arm, slit=SLIT_MM):
     재현성만 있으면 모양은 상쇄됩니다. 경계 폭이 정하는 것은 에지 검출의
     잡음 민감도입니다 — required_snr() 를 보십시오.
     """
-    t = theta_c(S_TANK)
+    t = theta_c(S_AIM)
     a_ = detector_pos(-slit / 2, t, R, cy, chief, arm)
     b_ = detector_pos(+slit / 2, t, R, cy, chief, arm)
     s0 = detector_pos(0.0, theta_c(0.0), R, cy, chief, arm)
@@ -525,7 +534,7 @@ def main():
     print()
 
     R, cy = segment_geometry(60.0, 20.0)          # 사이언스트리 8종 기준
-    _, chief, _ = trace(0.0, theta_c(S_TANK), R, cy)
+    _, chief, _ = trace(0.0, theta_c(S_AIM), R, cy)
     arm_table(R, cy, chief)
     slit_scan(R, cy, chief)
     cur = edge_width_psu(R, cy, chief, ARM_MM)
