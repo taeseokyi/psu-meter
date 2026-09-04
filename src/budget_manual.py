@@ -64,9 +64,14 @@ T_READS = 2                      # 액적마다 읽는다 (보정액 1 + 시료 
 # 다만 표준액과 시료를 **같은 부피·같은 대기시간**으로 다루면 농축 비율이
 # 같아 2점 보정에서 정확히 상쇄된다. 남는 것은 타이밍 편차 몫뿐이다.
 # HANDOFF §6-1 규약: 부피 고정, T_settle 고정(+-5 s), 뚜껑 즉시 닫기.
-EVAP_PSU_PER_MIN = 0.58          # 중간값 (0.2 kg/m2h 가정)
-T_JITTER_S = 5.0                 # 두 액적의 대기시간 편차 [s]
-EVAP_TERM = EVAP_PSU_PER_MIN * T_JITTER_S / 60.0
+# 2026-09-02 갱신 — 증기 웰을 넣었다. 뚜껑 보스가 창 사면에 선접촉해
+# z 0~0.8 mm 만 가두므로 부피가 0.090 cm3 이고, 포화에 드는 액적은 0.010 %
+# (= 0.0036 PSU) 뿐이다. 즉 **뚜껑을 닫으면 증발이 사실상 멎는다.**
+# 남는 것은 액적을 올리고 뚜껑을 닫기까지의 **열린 시간의 편차**뿐이다.
+EVAP_PSU_PER_MIN = 0.58          # 열려 있을 때. 중간값 (0.2 kg/m2h 가정)
+T_OPEN_JITTER_S = 2.0            # 올림~닫음 시간의 편차 [s]
+WELL_SAT_PSU = 0.0036            # 웰을 포화시키는 데 드는 몫 (한 번, 상쇄됨)
+EVAP_TERM = EVAP_PSU_PER_MIN * T_OPEN_JITTER_S / 60.0
 T_TERM = math.sqrt(T_READS) * T_SENSOR * DNDT_PSU
 SNR1 = 1300.0                    # 단일 프레임 SNR (데이터시트 + 10비트 ADC)
 
@@ -206,7 +211,7 @@ def main():
          prnu_bias(ARM_CONF, slit_conf, FLAT_RESID)[0]),
         ("2점 보정 — 곡선 피팅 후 잔차", 0.005),
         ("온도 (센서 %.4f x %.3f x sqrt%d)" % (T_SENSOR, DNDT_PSU, T_READS), T_TERM),
-        ("증발 (대기시간 편차 %.0f s)" % T_JITTER_S, EVAP_TERM),
+        ("증발 (뚜껑 닫기까지 편차 %.0f s)" % T_OPEN_JITTER_S, EVAP_TERM),
     ]
     for name, v in items:
         print("      %-34s %.4f PSU" % (name, v))
