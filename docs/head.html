@@ -637,7 +637,7 @@ function geom(){
   /* ★ 광학 지렛대는 **측정점 M 부터**다. 기계 팔(S.armD)은 곡면 통과점 E 부터고,
      그 둘의 차 E·주광선(반원이면 정확히 R)이 지렛대에 더해진다.
      2026-09-02 정정 — 전에는 기계 팔을 그대로 지렛대로 써서
-     스팬 9.0 px / 광창 4.7 mm 가 나왔지만 실제로는 13.9 px / 7.1 mm 다. */
+     스팬 9.0 px 가 나왔지만 실제로는 13.5 px 다. */
   const eProj = tr.P[0]*Math.cos(armR) - tr.P[1]*Math.sin(armR);
   const lever  = eProj + S.armD;                 // 검출기까지 (M 기준)
   const leverI = eProj + S.arm;                  // 슬릿까지 (M 기준, 참고)
